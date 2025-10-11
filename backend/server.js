@@ -3,6 +3,6 @@ const app=express();
 app.listen(3000);
 console.log("server is running on port 3000")
 app.get("/",(req,res)=>{
-    res.send("HI from port 3000 .")
+    res.send("HI from port 3000! .")
 
 })
