@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eaf2fb;
+  --color-brand-100: #d6e5f7;
+  --color-brand-200: #aecaf0;
+  --color-brand-300: #84afe6;
+  --color-brand-400: #5e97d9;
+  --color-brand-500: #3d81cc; /* primary: deeper professional blue */
+  --color-brand-600: #2f6db4; /* used for buttons */
+  --color-brand-700: #285e9a;
+  --color-brand-800: #224f82;
+  --color-brand-900: #1c426d;
+
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --shadow-soft: 0 1px 2px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.06);
+}
+
+/* personnalisations facultatives */
+:root{
+  --brand-500: #3d81cc;
+}
+/* arrière-plan géré dans index.html via une classe Tailwind */
+
+/* animations utilitaires */
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(10px, -20px) scale(1.05); }
+  66% { transform: translate(-15px, 5px) scale(0.98); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+.animate-blob {
+  animation: blob 10s ease-in-out infinite;
+}
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
