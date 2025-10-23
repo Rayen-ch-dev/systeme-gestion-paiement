@@ -1,13 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import mockExisting from "../utils/data";
+import { emailRegex,ribRegex,phoneRegex } from "../utils/data";
 
-const mockExisting = [
-  { email: "john.doe@example.com", cin: "AA123456", phone: "+33601020304" },
-  { email: "jane.smith@example.com", cin: "BB987654", phone: "+33611223344" },
-];
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
-const phoneRegex = /^(\+?\d{6,15}|0\d{8,14})$/;
-const ribRegex = /^[0-9A-Z]{10,34}$/i; // IBAN/RIB simplified validation
 
 export default function RegisterPage() {
   const [role, setRole] = useState("formateur"); // "formateur" | "coordinateur"
