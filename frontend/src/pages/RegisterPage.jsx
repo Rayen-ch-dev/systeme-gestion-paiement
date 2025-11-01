@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import mockExisting from "../utils/data";
-import { emailRegex,ribRegex,phoneRegex } from "../utils/data";
+import { emailRegex,ribRegex } from "../utils/data";
 
 
 
@@ -11,15 +11,15 @@ export default function RegisterPage() {
     lastName: "",
     email: "",
     cin: "",
-    phone: "",
-    address: "",
+    password: "",
+    confirmPassword: "",
     bank: "",
     rib: "",
     fonction: "", // only for coordinateur
     specialite: "", // only for formateur
   });
   const [errors, setErrors] = useState({});
-  const [dup, setDup] = useState({ email: false, cin: false, phone: false });
+  const [dup, setDup] = useState({ email: false, cin: false });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState({
@@ -27,8 +27,8 @@ export default function RegisterPage() {
     lastName: false,
     email: false,
     cin: false,
-    phone: false,
-    address: false,
+    password: false,
+    confirmPassword: false,
     bank: false,
     rib: false,
     fonction: false,
@@ -50,9 +50,10 @@ export default function RegisterPage() {
     if (!data.firstName.trim()) e.firstName = "Prénom requis";
     if (!data.lastName.trim()) e.lastName = "Nom requis";
     if (!emailRegex.test(data.email)) e.email = "Email invalide";
-    if (!data.cin || data.cin.length < 6) e.cin = "CIN invalide";
-    if (!phoneRegex.test(data.phone)) e.phone = "Téléphone invalide";
-    if (!data.address.trim()) e.address = "Adresse requise";
+    if (!data.cin || data.cin.length !== 8) e.cin = "CIN invalide";
+    if (!data.password || data.password.length < 6) e.password = "Mot de passe trop court";
+    if (!data.confirmPassword) e.confirmPassword = "Confirmation requise";
+    if (data.password && data.confirmPassword && data.password !== data.confirmPassword) e.confirmPassword = "Les mots de passe ne correspondent pas";
     if (!data.bank) e.bank = "Banque requise";
     if (!ribRegex.test(data.rib)) e.rib = "RIB/IBAN invalide";
     if (role === "coordinateur" && !data.fonction.trim()) e.fonction = "Fonction requise";
@@ -70,9 +71,8 @@ export default function RegisterPage() {
     setDup({
       email: !!form.email && mockExisting.some((u) => u.email.toLowerCase() === form.email.toLowerCase()),
       cin: !!form.cin && mockExisting.some((u) => u.cin.toLowerCase() === form.cin.toLowerCase()),
-      phone: !!form.phone && mockExisting.some((u) => u.phone === form.phone),
     });
-  }, [form.email, form.cin, form.phone]);
+  }, [form.email, form.cin]);
 
   const onChange = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.value }));
   const onBlur = (k) => () => setTouched((t) => ({ ...t, [k]: true }));
@@ -184,15 +184,15 @@ export default function RegisterPage() {
               {(dup.cin && (touched.cin || submitAttempted)) ? <span className="text-xs text-amber-600">Ce CIN existe déjà</span> : ((errors.cin && (touched.cin || submitAttempted)) ? <span className="text-xs text-red-600">{errors.cin}</span> : null)}
             </label>
             <label className="block">
-              <span className="text-sm text-slate-700">Téléphone</span>
-              <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.phone && (touched.phone || submitAttempted)) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.phone} onChange={onChange("phone")} onBlur={onBlur("phone")} placeholder="Ex: +212612345678" />
-              {(dup.phone && (touched.phone || submitAttempted)) ? <span className="text-xs text-amber-600">Ce téléphone existe déjà</span> : ((errors.phone && (touched.phone || submitAttempted)) ? <span className="text-xs text-red-600">{errors.phone}</span> : null)}
+              <span className="text-sm text-slate-700">Mot de passe</span>
+              <input type="password" className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.password && (touched.password || submitAttempted)) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.password} onChange={onChange("password")} onBlur={onBlur("password")} placeholder="••••••" />
+              {(errors.password && (touched.password || submitAttempted)) ? <span className="text-xs text-red-600">{errors.password}</span> : null}
             </label>
 
             <label className="block md:col-span-2">
-              <span className="text-sm text-slate-700">Adresse</span>
-              <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.address && (touched.address || submitAttempted)) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.address} onChange={onChange("address")} onBlur={onBlur("address")} placeholder="N°, Rue, Ville" />
-              {(errors.address && (touched.address || submitAttempted)) ? <span className="text-xs text-red-600">{errors.address}</span> : null}
+              <span className="text-sm text-slate-700">Confirmer le mot de passe</span>
+              <input type="password" className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.confirmPassword && (touched.confirmPassword || submitAttempted)) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.confirmPassword} onChange={onChange("confirmPassword")} onBlur={onBlur("confirmPassword")} placeholder="••••••" />
+              {(errors.confirmPassword && (touched.confirmPassword || submitAttempted)) ? <span className="text-xs text-red-600">{errors.confirmPassword}</span> : null}
             </label>
 
             <label className="block">
