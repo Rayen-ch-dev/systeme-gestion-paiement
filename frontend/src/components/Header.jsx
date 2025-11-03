@@ -1,12 +1,42 @@
 import React from "react";
 
 export default function Header() {
+  let displayName = "Utilisateur";
+  let initials = "U";
+  let isConnected = false;
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("profile");
+      if (raw) {
+        const p = JSON.parse(raw);
+        const fn = p.firstName || "";
+        const ln = p.lastName || "";
+        displayName = (fn + (ln ? " " + ln : "")).trim() || displayName;
+        const a = (fn || "U").slice(0,1);
+        const b = (ln || "").slice(0,1);
+        initials = (a + b).toUpperCase();
+        isConnected = Boolean(fn || p.email);
+      }
+    } catch {}
+  }
   return (
     <header className="w-full bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-slate-200">
       <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-md bg-brand-600 flex items-center justify-center text-white font-semibold">F</div>
-          <div className="text-slate-900 font-semibold tracking-tight">Formation</div>
+        <div className="flex items-center gap-3">
+          {isConnected ? (
+            <button
+              onClick={() => { if (typeof window !== 'undefined') window.location.hash = '#profile'; }}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 hover:bg-white px-2 py-1"
+            >
+              <div className="h-6 w-6 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-semibold">{initials}</div>
+              <span className="text-slate-700 max-w-[180px] truncate">{displayName}</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-md bg-brand-600 flex items-center justify-center text-white font-semibold">F</div>
+              <div className="text-slate-900 font-semibold tracking-tight">Formation</div>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4 text-sm">
           <a href="#help" className="text-slate-600 hover:text-slate-900">Aide</a>
@@ -20,3 +50,4 @@ export default function Header() {
     </header>
   );
 }
+

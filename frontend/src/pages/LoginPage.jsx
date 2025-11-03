@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import LoginForm from "../components/LoginForm";
 import StatusAlert from "../components/StatusAlert";
+import { auth } from "../api";
 
 export default function LoginPage() {
   const [status, setStatus] = useState(null); // null | 'pending' | 'rejected' | 'active'
@@ -8,31 +9,8 @@ export default function LoginPage() {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Mock authentication to demonstrate UI states (no backend modifications)
-  const mockAuthenticate = async ({ email, password }) => {
-    // small delay to show loading
-    await new Promise((r) => setTimeout(r, 700));
-
-    if (email.includes("pending")) {
-      return { status: "pending" };
-    }
-    if (email.includes("rejected")) {
-      return {
-        status: "rejected",
-        adminContact: {
-          email: "administration@institution.example",
-          phone: "+33 1 23 45 67 89",
-        },
-      };
-    }
-    // otherwise active: choose role based on email keyword for demo
-    let role = "Coordinateur";
-    if (email.includes("super")) role = "Super Admin";
-    if (email.includes("paie")) role = "Responsable de paie";
-    if (email.includes("form")) role = "Formateur";
-
-    return { status: "active", role };
-  };
+  // Front API login (replaces previous mock)
+  const apiLogin = (payload) => auth.login(payload);
 
   const handleSubmit = async (values) => {
     setLoading(true);
@@ -41,7 +19,7 @@ export default function LoginPage() {
     setRole(null);
 
     try {
-      const res = await mockAuthenticate(values);
+      const res = await apiLogin(values);
       if (res.status === "pending") {
         setStatus("pending");
       } else if (res.status === "rejected") {
@@ -52,6 +30,19 @@ export default function LoginPage() {
         setRole(res.role);
         // simulate redirection to role-specific dashboard
         // replace with actual routing when backend is ready
+        try {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("role", res.role);
+            // persist a minimal profile for header/slide-over usage
+            const existing = localStorage.getItem("profile");
+            const current = existing ? JSON.parse(existing) : {};
+            const nextProfile = {
+              ...current,
+              email: values.email || current.email || "",
+            };
+            localStorage.setItem("profile", JSON.stringify(nextProfile));
+          }
+        } catch {}
         setTimeout(() => {
           // example redirect path
           const path = `/dashboard/${res.role.replace(/\s+/g, "-").toLowerCase()}`;
