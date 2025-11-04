@@ -6,11 +6,11 @@ export const createUser = async (req, res) => {
   try {
     const { name, lastname,cin ,email, password } = req.body;
 
-    if (!name || !lastname || !cin || !email || !password) {
+    if (!name || !lastname || !cin || !email || !password ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const newUser = new User({ name, lastname, cin ,email, password });
+    const newUser = new User({ name, lastname, cin ,email, password});
     await newUser.save();
 
     res.status(201).json({ message: " User created", user: newUser });
