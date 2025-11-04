@@ -33,6 +33,12 @@ const userSchema = new mongoose.Schema({
     enum: ["super_admin","formateur", "coordinateur"],
     default: "formateur",
   },
+  status: {
+    type: String,
+    enum: ["en-attente", "approuvé", "non-approuvé"],
+    default: "en-attente",
+    required: function() { return this.role !== "super_admin" && this.role !== "comptable"; }
+  },
   rib: {
     type: String, 
     required: function() { return this.role !== "super_admin"; },

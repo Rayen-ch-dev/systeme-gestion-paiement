@@ -3,7 +3,7 @@ import React from "react";
 export default function StatusAlert({ status, adminContact, role }) {
   if (!status) return null;
 
-  if (status === "pending") {
+  if (status === "pending" || status === "en-attente") {
     return (
       <div className="mb-4 rounded-md bg-amber-50 border-l-4 border-amber-400 p-3 flex gap-3 items-start">
         <div className="text-amber-600">
@@ -19,7 +19,7 @@ export default function StatusAlert({ status, adminContact, role }) {
     );
   }
 
-  if (status === "rejected") {
+  if (status === "rejected" || status === "non-approuvé") {
     return (
       <div className="mb-4 rounded-md bg-red-50 border-l-4 border-red-400 p-3 flex gap-3 items-start">
         <div className="text-red-600">
@@ -41,7 +41,7 @@ export default function StatusAlert({ status, adminContact, role }) {
     );
   }
 
-  if (status === "active") {
+  if (status === "active" || status === "approuvé") {
     return (
       <div className="mb-4 rounded-md bg-green-50 border-l-4 border-green-400 p-3 flex gap-3 items-start">
         <div className="text-green-600">
