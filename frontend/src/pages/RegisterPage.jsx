@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import mockExisting from "../utils/data";
 import { emailRegex,ribRegex } from "../utils/data";
+import { auth } from "../api";
 
 
 
@@ -67,21 +67,15 @@ export default function RegisterPage() {
   }, [form]);
 
   // mock duplicate checks in real-time
-  useEffect(() => {
-    setDup({
-      email: !!form.email && mockExisting.some((u) => u.email.toLowerCase() === form.email.toLowerCase()),
-      cin: !!form.cin && mockExisting.some((u) => u.cin.toLowerCase() === form.cin.toLowerCase()),
-    });
-  }, [form.email, form.cin]);
+  // Duplicate checks now handled by backend on submit
 
   const onChange = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.value }));
   const onBlur = (k) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   const canSubmit = useMemo(() => {
     const hasErrors = Object.keys(errors).length > 0;
-    const hasDup = Object.values(dup).some(Boolean);
-    return !hasErrors && !hasDup;
-  }, [errors, dup]);
+    return !hasErrors;
+  }, [errors]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -89,15 +83,31 @@ export default function RegisterPage() {
     const eMap = validate(form);
     setErrors(eMap);
     if (Object.keys(eMap).length > 0) return;
-    if (Object.values(dup).some(Boolean)) return;
 
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 800)); // simulate API
-    setSubmitting(false);
-    setSubmitted(true);
-
-    // Simulate sending confirmation email and pending status
-    // In a real app, backend sets status=pending and sends email.
+    try {
+      const payload = {
+        name: form.firstName,
+        lastname: form.lastName,
+        cin: form.cin,
+        email: form.email,
+        password: form.password,
+        role: role, // "formateur" | "coordinateur"
+        banque: form.bank,
+        rib: form.rib,
+      };
+      const res = await auth.register(payload);
+      if (!res.ok) {
+        console.error(res.error || "Registration failed");
+        setSubmitting(false);
+        return;
+      }
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {

@@ -24,7 +24,7 @@ export default function LoginPage() {
         setStatus("pending");
       } else if (res.status === "rejected") {
         setStatus("rejected");
-        setAdminContact(res.adminContact);
+        setAdminContact(null);
       } else if (res.status === "active") {
         setStatus("active");
         setRole(res.role);
@@ -52,10 +52,7 @@ export default function LoginPage() {
     } catch (err) {
       console.error(err);
       setStatus("rejected");
-      setAdminContact({
-        email: "administration@institution.example",
-        phone: "+33 1 23 45 67 89",
-      });
+      setAdminContact(null);
     } finally {
       setLoading(false);
     }

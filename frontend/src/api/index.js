@@ -6,47 +6,62 @@ export const auth = {
     // Basic checks
     if (!email || !password) return { status: "rejected", error: "Missing credentials" };
 
-    // Try real backend auth first
-    try {
-      const res = await fetch("/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        return { status: "rejected", error: `HTTP ${res.status}` };
-      }
-      const data = await res.json().catch(() => ({}));
-      // Try to use role from backend, otherwise infer from email keywords
-      let role = data.role || "Coordinateur";
-      if (!data.role) {
-        if (email.includes("super")) role = "Super Admin";
-        if (email.includes("paie")) role = "Responsable de paie";
-        if (email.includes("form")) role = "Formateur";
-      }
-      try {
-        localStorage.setItem("role", role);
-        const existing = localStorage.getItem("profile");
-        const current = existing ? JSON.parse(existing) : {};
-        const nextProfile = { ...current, email };
-        localStorage.setItem("profile", JSON.stringify(nextProfile));
-      } catch {}
-      return { status: "active", role };
-    } catch (e) {
-      // Fallback front-only logic (network issues)
-      let role = "Coordinateur";
-      if (email.includes("super")) role = "Super Admin";
-      if (email.includes("paie")) role = "Responsable de paie";
-      if (email.includes("form")) role = "Formateur";
-      try {
-        localStorage.setItem("role", role);
-        const existing = localStorage.getItem("profile");
-        const current = existing ? JSON.parse(existing) : {};
-        const nextProfile = { ...current, email };
-        localStorage.setItem("profile", JSON.stringify(nextProfile));
-      } catch {}
-      return { status: "active", role, fallback: true };
+    // Call backend auth
+    const res = await fetch("/api/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const error = data?.message || `HTTP ${res.status}`;
+      return { status: "rejected", error };
     }
+
+    const token = data?.token;
+    const user = data?.user || {};
+    const role = user?.role || null;
+
+    try {
+      if (token) localStorage.setItem("token", token);
+      if (role) localStorage.setItem("role", role);
+      const existing = localStorage.getItem("profile");
+      const current = existing ? JSON.parse(existing) : {};
+      const nextProfile = { ...current, email: user.email || email, name: user.name, lastname: user.lastname };
+      localStorage.setItem("profile", JSON.stringify(nextProfile));
+    } catch {}
+
+    return { status: "active", role, token, user };
+  },
+
+  async register({ name, lastname, cin, email, password, role, banque, rib }) {
+    if (!name || !lastname || !cin || !email || !password) {
+      return { ok: false, error: "Champs requis manquants" };
+    }
+    if (role !== "super_admin") {
+      if (!banque || !rib) return { ok: false, error: "Banque et RIB requis" };
+    }
+
+    const res = await fetch("/api/users/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, lastname, cin, email, password, role, banque, rib }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: data?.message || `HTTP ${res.status}` };
+    }
+
+    try {
+      const existing = localStorage.getItem("profile");
+      const current = existing ? JSON.parse(existing) : {};
+      const next = { ...current, email, name, lastname };
+      localStorage.setItem("profile", JSON.stringify(next));
+    } catch {}
+
+    return { ok: true, user: data?.user };
   },
 
   async logout() {

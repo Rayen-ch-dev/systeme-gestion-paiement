@@ -3,11 +3,13 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import comptableRoutes from "./routes/comptableRoutes.js";
+import cors from "cors";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 //db connection
 connectDB();
@@ -15,6 +17,7 @@ connectDB();
 app.get("/", (req, res) => {
   res.send("MongoDB connected to backend successfully!");
 });
+
 //Add user API
 app.use("/api/users", userRoutes);
 
