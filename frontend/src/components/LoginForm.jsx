@@ -61,7 +61,7 @@ export default function LoginForm({ onSubmit, loading }) {
         <label className="flex items-center text-sm text-slate-600">
           <input type="checkbox" className="mr-2" /> Se souvenir
         </label>
-        <a className="text-sm text-brand-600 hover:text-brand-700 hover:underline" href="#forgot">Mot de passe oublié ?</a>
+        <a className="text-sm text-brand-600 hover:text-brand-700 hover:underline" href="/ForgotPassword">Mot de passe oublié ?</a>
       </div>
 
       <div>

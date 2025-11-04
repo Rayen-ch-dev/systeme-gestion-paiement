@@ -227,7 +227,7 @@ export default function RegisterPage() {
                 ) : null}
                 Envoyer ma demande d'inscription
               </button>
-              <div className="mt-3 text-xs text-slate-500 text-center">
+              <div className="mt-3 text-xs text-blue-500 text-center">
                 En envoyant, votre compte sera placé en statut <span className="font-medium">en attente</span> jusqu'à validation par le responsable de paie.
               </div>
             </div>
