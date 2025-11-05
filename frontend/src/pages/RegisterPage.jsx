@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { emailRegex,ribRegex } from "../utils/data";
+import { emailRegex, ribRegex, cinRegex } from "../utils/data";
 import { auth } from "../api";
 
 
@@ -50,7 +50,7 @@ export default function RegisterPage() {
     if (!data.firstName.trim()) e.firstName = "Prénom requis";
     if (!data.lastName.trim()) e.lastName = "Nom requis";
     if (!emailRegex.test(data.email)) e.email = "Email invalide";
-    if (!data.cin || data.cin.length !== 8) e.cin = "CIN invalide";
+    if (!cinRegex.test(data.cin)) e.cin = "CIN invalide";
     if (!data.password || data.password.length < 6) e.password = "Mot de passe trop court";
     if (!data.confirmPassword) e.confirmPassword = "Confirmation requise";
     if (data.password && data.confirmPassword && data.password !== data.confirmPassword) e.confirmPassword = "Les mots de passe ne correspondent pas";
@@ -227,7 +227,7 @@ export default function RegisterPage() {
                 ) : null}
                 Envoyer ma demande d'inscription
               </button>
-              <div className="mt-3 text-xs text-slate-500 text-center">
+              <div className="mt-3 text-xs text-blue-500 text-center">
                 En envoyant, votre compte sera placé en statut <span className="font-medium">en attente</span> jusqu'à validation par le responsable de paie.
               </div>
             </div>

@@ -4,7 +4,10 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import Dashboard from "./pages/DashboardFC";
 import ProfilePage from "./pages/ProfilePage";
-
+import ForgotPassword from "./pages/ForgotPassword";
+import VerificationCodePage from "./pages/VerificationCodePage";
+import { BrowserRouter as Router, Routes, Route, BrowserRouter } from "react-router-dom";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 export default function App() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
   let Page;
@@ -16,7 +19,16 @@ export default function App() {
     Page = Dashboard;
   } else if (path === "/profile") {
     Page = ProfilePage;
-  } else {
+  }else if (path==="/ForgotPassword") {
+    Page = ForgotPassword;
+  }else if (path==="/verification-code") {
+    Page = VerificationCodePage;
+  }
+  else if (path==="/reset-password") {
+    Page = ResetPasswordPage;
+  }
+  
+  else {
     Page = () => (
       <div className="min-h-[calc(100vh-56px)] flex items-center justify-center p-10">
         <div className="text-center">

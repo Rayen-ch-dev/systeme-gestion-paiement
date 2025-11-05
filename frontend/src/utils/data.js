@@ -5,4 +5,5 @@ const mockExisting = [
 export default mockExisting;
 export const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
 export const phoneRegex = /^(\+?\d{6,15}|0\d{8,14})$/;
-export const ribRegex = /^[0-9A-Z]{10,34}$/i; // IBAN/RIB simplified validation
+export const cinRegex = /^\d{8}$/; // exactly 8 digits
+export const ribRegex = /^\d{20}$/; // exactly 20 digits
