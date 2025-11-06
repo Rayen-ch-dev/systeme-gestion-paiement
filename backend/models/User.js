@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
+    
   },
   cin: {
     type: String,
@@ -47,6 +48,11 @@ const userSchema = new mongoose.Schema({
   banque: {
     type: String, 
     required: function() { return this.role !== "super_admin"; },
+  },
+   role: {
+    type: String,
+    enum: ["super_admin","formateur", "coordinateur"],
+    default: "formateur",
   },
   createdAt: {
     type: Date,
