@@ -6,8 +6,8 @@ const router = express.Router();
 router.post("/register", registerComptable);
 router.post("/login", loginComptable);
 router.get("/", getAllComptables);
-router.get("getComptableById/:id", getComptableById);
-router.put("updateComptable/:id", updateComptable);
-router.delete("deleteComptable/:id", deleteComptable);
+router.get("/getComptableById/:id", getComptableById);
+router.put("/updateComptable/:id", updateComptable);
+router.delete("/deleteComptable/:id", deleteComptable);
 
 export default router;

@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-const ComptableSchema = new mongoose.Schema({
+const comptableSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -37,11 +37,11 @@ const ComptableSchema = new mongoose.Schema({
 });
 
 
-ComptableSchema.pre("save", async function (next) {
+comptableSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
 
-export const comptable = mongoose.model("Comptable", ComptableSchema);
+export const Comptable = mongoose.model("Comptable", comptableSchema);
