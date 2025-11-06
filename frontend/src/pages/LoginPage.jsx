@@ -42,7 +42,7 @@ export default function LoginPage() {
             };
             localStorage.setItem("profile", JSON.stringify(nextProfile));
           }
-        } catch {}
+        } catch { "error"}
         setTimeout(() => {
           // example redirect path
           const path = `/dashboard/${res.role.replace(/\s+/g, "-").toLowerCase()}`;
