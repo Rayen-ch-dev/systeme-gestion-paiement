@@ -5,9 +5,12 @@ import RegisterPage from "./pages/RegisterPage";
 import Dashboard from "./pages/DashboardFC";
 import ProfilePage from "./pages/ProfilePage";
 import ForgotPassword from "./pages/ForgotPassword";
-import VerificationCodePage from "./pages/VerificationCodePage";
 import { BrowserRouter as Router, Routes, Route, BrowserRouter } from "react-router-dom";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import AddAdmin from "./components/AddAdmin";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminProfileInfo from "./components/AdminProfileInfo";
 export default function App() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
   let Page;
@@ -21,11 +24,20 @@ export default function App() {
     Page = ProfilePage;
   }else if (path==="/ForgotPassword") {
     Page = ForgotPassword;
-  }else if (path==="/verification-code") {
-    Page = VerificationCodePage;
-  }
-  else if (path==="/reset-password") {
+  }else if (path==="/reset-password") {
     Page = ResetPasswordPage;
+  }
+  else if (path==="/SuperAdminDashboard"){
+    Page=SuperAdminDashboard;
+  }
+  else if(path==="/CreateNewAdmin"){
+    Page=AddAdmin;
+  }
+  else if(path==="/AdminDashboard"){
+    Page=AdminDashboard;
+  }
+  else if(path==="/AdminProfileInfo"){
+    Page=AdminProfileInfo;
   }
   
   else {
