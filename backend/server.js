@@ -29,10 +29,6 @@ app.use("/api/password/resetPassword",ResetPasswordRoutes)
 
 
 
-
-
-
-
 const PORT = process.env.PORT ;
 app.listen(PORT, () => {
   console.log(` Server running on http://localhost:${PORT}`);
