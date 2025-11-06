@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import comptableRoutes from "./routes/comptableRoutes.js";
+import ResetPasswordRoutes from "./routes/ResetPasswordRoutes.js";
 
 dotenv.config();
 
@@ -20,6 +21,11 @@ app.use("/api/users", userRoutes);
 
 //add comptable api
 app.use("/api/comptable", comptableRoutes);
+
+
+//Reset password router
+
+app.use("/api/password/resetPassword",ResetPasswordRoutes)
 
 
 
