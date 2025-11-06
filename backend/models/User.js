@@ -11,7 +11,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    
   },
   cin: {
     type: String,
@@ -31,7 +30,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["super_admin","formateur", "coordinateur"],
+    enum: ["super_admin", "formateur", "coordinateur", "comptable"],
     default: "formateur",
   },
   status: {
@@ -43,16 +42,21 @@ const userSchema = new mongoose.Schema({
   rib: {
     type: String, 
     required: function() { return this.role !== "super_admin"; },
-    unique : true,
+    unique: true,
   },
   banque: {
     type: String, 
     required: function() { return this.role !== "super_admin"; },
   },
-   role: {
+  specialite: {
     type: String,
-    enum: ["super_admin","formateur", "coordinateur"],
-    default: "formateur",
+    required: function() { return this.role === "formateur"; },
+    trim: true,
+  },
+  fonction: {
+    type: String,
+    required: function() { return this.role === "coordinateur"; },
+    trim: true,
   },
   createdAt: {
     type: Date,
