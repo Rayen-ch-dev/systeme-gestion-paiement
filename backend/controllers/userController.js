@@ -34,6 +34,10 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Email or password invalid" });
     }
 
+    if ((user.role === "formateur" || user.role === "coordinateur") && user.status !== "approuvé") {
+      return res.status(403).json({ message: "Compte en attente de validation", status: user.status });
+    }
+
     // Generate a JWT token
     const token = jwt.sign(
       { id: user._id, role: user.role },
