@@ -5,7 +5,6 @@ import RegisterPage from "./pages/RegisterPage";
 import Dashboard from "./pages/DashboardFC";
 import ProfilePage from "./pages/ProfilePage";
 import ForgotPassword from "./pages/ForgotPassword";
-import VerificationCodePage from "./pages/VerificationCodePage";
 import { BrowserRouter as Router, Routes, Route, BrowserRouter } from "react-router-dom";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -25,10 +24,7 @@ export default function App() {
     Page = ProfilePage;
   }else if (path==="/ForgotPassword") {
     Page = ForgotPassword;
-  }else if (path==="/verification-code") {
-    Page = VerificationCodePage;
-  }
-  else if (path==="/reset-password") {
+  }else if (path==="/reset-password") {
     Page = ResetPasswordPage;
   }
   else if (path==="/SuperAdminDashboard"){

@@ -20,7 +20,7 @@ export default function AdminProfileInfo() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setSuccessMessage("✅ Profile updated successfully!");
+    setSuccessMessage(" Profile updated successfully!");
     setTimeout(() => {setSuccessMessage(""),window.location.href="AdminDashboard"}, 600);
     
   };

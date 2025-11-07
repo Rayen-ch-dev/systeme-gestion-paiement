@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { emailRegex, phoneRegex } from "../utils/data";
+import { emailRegex } from "../utils/data";
 import { profile as profileApi } from "../api";
 
 export default function ProfilePage() {

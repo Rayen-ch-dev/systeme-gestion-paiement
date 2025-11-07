@@ -14,17 +14,11 @@ export default function ForgotPassword() {
       return;
     }
 
-    console.log("Reset code sent to:", email);
+    console.log("Reset link sent to:", email);
 
     // 🟢 Show success message
-    setMessage(`Un code de vérification a été envoyé à ${email}.`);
+    setMessage(`Un lien de vérification a été envoyé à ${email}.`);
     setError("");
-
-    // 🕒 Redirect after short delay (full page navigation)
-    setTimeout(() => {
-      // Use full page navigation so the route is loaded reliably in this app structure
-      window.location.href = "/verification-code";
-    }, 1000);
   };
 
   return (
