@@ -23,7 +23,6 @@ describe("Password Reset API", () => {
 });
 
 // Mock valid token, id, and type
-// (You can use a real one copied from your email for testing)
 const id = "68fa5d7e8c1a18b10f6a3ddb";
 const token =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImNoYWxsb3VmcmF5ZW4wOUBnbWFpbC5jb20iLCJpZCI6IjY4ZmE1ZDdlOGMxYTE4YjEwZjZhM2RkYiIsInR5cGUiOiJjb21wdGFibGUiLCJpYXQiOjE3NjI0OTUxOTQsImV4cCI6MTc2MjQ5NTc5NH0.Xfge_HBokQzh1TvuoTl9hstHr8OXjiW3C_jAE-rpQ7Q";
