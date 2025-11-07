@@ -106,11 +106,19 @@ export const protect = async (req, res, next) => {
 // Middleware pour vérifier les rôles
 export const authorize = (...roles) => {
   return (req, res, next) => {
+    // Le super_admin a accès à tout
+    if (req.user.role === 'super_admin') {
+      return next();
+    }
+    
+    // Vérifier si le rôle de l'utilisateur est autorisé
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ 
-        message: `Le rôle ${req.user.role} n'est pas autorisé à accéder à cette ressource` 
+        success: false,
+        message: `Accès refusé. Votre rôle (${req.user.role}) n'a pas les permissions nécessaires.` 
       });
     }
+    
     next();
   };
 };

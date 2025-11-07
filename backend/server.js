@@ -46,7 +46,7 @@ app.get("/", (req, res) => {
 
 // Définition des routes API
 app.use("/api/users", userRoutes);
-app.use("/api/comptable", comptableRoutes);
+app.use("/api/comptables", comptableRoutes); // Corrigé de '/api/comptable' à '/api/comptables'
 app.use("/api/password/resetPassword", ResetPasswordRoutes);
 
 // Gestion des routes non trouvées (doit être avant le gestionnaire d'erreurs)

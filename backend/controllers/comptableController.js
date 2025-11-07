@@ -2,259 +2,873 @@ import { Comptable } from "../models/Comptable.js";
 import { User } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import mongoose from 'mongoose';
 
+/**
+ * Helper pour gérer les erreurs de validation Mongoose
+ * @param {Error} error - L'erreur de validation
+ * @param {Object} res - L'objet réponse Express
+ * @returns {Object|undefined} La réponse d'erreur ou undefined si ce n'est pas une erreur de validation
+ */
+const handleValidationError = (error, res) => {
+  if (error.name === 'ValidationError') {
+    const messages = Object.values(error.errors).map(val => val.message);
+    return res.status(400).json({
+      success: false,
+      message: 'Erreur de validation',
+      errors: messages
+    });
+  }
+  return null;
+};
+
+/**
+ * Helper pour gérer les erreurs de doublon
+ * @param {Error} error - L'erreur de doublon
+ * @param {Object} res - L'objet réponse Express
+ * @returns {Object|undefined} La réponse d'erreur ou undefined si ce n'est pas une erreur de doublon
+ */
+const handleDuplicateKeyError = (error, res) => {
+  if (error.code === 11000) {
+    const field = Object.keys(error.keyValue)[0];
+    const message = field === 'email' 
+      ? 'Un compte avec cet email existe déjà' 
+      : field === 'cin' 
+        ? 'Ce numéro CIN est déjà utilisé'
+        : `La valeur du champ '${field}' est déjà utilisée`;
+    
+    return res.status(400).json({
+      success: false,
+      message,
+      field
+    });
+  }
+  return null;
+};
+
+/**
+ * Enregistre un nouveau comptable
+ * @route POST /api/comptables/register
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const registerComptable = async (req, res) => {
-  try {
-    const { name, lastname, cin, email, password } = req.body;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    // Check if user already exists
-    const existing = await Comptable.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ message: "Email already in use" });
+  try {
+    const { name, lastname, cin, email, password, role = 'comptable' } = req.body;
+    
+    // Journalisation des données reçues (sans le mot de passe pour des raisons de sécurité)
+    console.log('Tentative de création de comptable avec les données:', { 
+      name, 
+      lastname, 
+      cin: cin ? '***' + cin.slice(-4) : 'non fourni',
+      email: email ? '***' + email.split('@')[0].slice(-3) + '@' + email.split('@')[1] : 'non fourni',
+      role
+    });
+
+    // Vérifier les permissions de l'utilisateur
+    if (req.user.role !== 'super_admin' && role !== 'comptable') {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: "Vous n'êtes pas autorisé à créer un compte avec ce rôle"
+      });
     }
 
-    // Create new comptable
-    const newComptable = new Comptable({ name, lastname, cin, email, password });
-    await newComptable.save();
+    // Création du nouveau comptable dans une transaction
+    const newComptable = await Comptable.create([{
+      name: name?.trim(),
+      lastname: lastname?.trim(),
+      cin: cin?.trim().toUpperCase(),
+      email: email?.toLowerCase().trim(),
+      password: password,
+      role: role || 'comptable',
+      status: 'actif'
+    }], { session });
 
-    res.status(201).json({ message: "Comptable created successfully", comptable: newComptable });
+    const savedComptable = newComptable[0];
+    
+    if (!savedComptable) {
+      await session.abortTransaction();
+      return res.status(500).json({
+        success: false,
+        message: "Erreur lors de la création du compte"
+      });
+    }
+
+    // Valider la transaction
+    await session.commitTransaction();
+    
+    // Générer le token JWT
+    const token = savedComptable.generateAuthToken();
+    
+    // Ne pas renvoyer le mot de passe dans la réponse
+    const { password: _, ...comptableWithoutPassword } = savedComptable.toObject();
+
+    console.log('Comptable créé avec succès:', { 
+      id: savedComptable._id, 
+      email: savedComptable.email,
+      role: savedComptable.role 
+    });
+    
+    res.status(201).json({ 
+      success: true,
+      message: "Comptable créé avec succès",
+      token,
+      comptable: comptableWithoutPassword 
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    // En cas d'erreur, annuler la transaction
+    await session.abortTransaction();
+    
+    console.error('Erreur lors de la création du comptable:', error);
+    
+    // Gérer les erreurs de validation
+    const validationError = handleValidationError(error, res);
+    if (validationError) return validationError;
+    
+    // Gérer les erreurs de doublon
+    const duplicateError = handleDuplicateKeyError(error, res);
+    if (duplicateError) return duplicateError;
+    
+    // Erreur serveur générique
+    res.status(500).json({ 
+      success: false,
+      message: "Erreur serveur lors de la création du compte",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  } finally {
+    // Toujours terminer la session
+    await session.endSession().catch(console.error);
   }
 };
 
+/**
+ * Authentifie un comptable
+ * @route POST /api/comptables/login
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const loginComptable = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find comptable by email
-    const user = await Comptable.findOne({ email });
+    // Vérifier que l'email et le mot de passe sont fournis
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Veuillez fournir un email et un mot de passe"
+      });
+    }
+
+    // Trouver l'utilisateur par email (en incluant le mot de passe hashé)
+    const user = await Comptable.findOne({ email: email.toLowerCase().trim() })
+      .select('+password')
+      .select('+status');
+
+    // Vérifier si l'utilisateur existe
     if (!user) {
-      return res.status(400).json({ message: "Email or password invalid" });
+      // Ne pas révéler que l'email n'existe pas pour des raisons de sécurité
+      return res.status(401).json({
+        success: false,
+        message: "Email ou mot de passe incorrect"
+      });
     }
 
-    // Compare password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(400).json({ message: "Email or password invalid" });
+    // Vérifier si le compte est actif
+    if (user.status !== 'actif') {
+      return res.status(403).json({
+        success: false,
+        message: "Votre compte n'est pas actif. Veuillez contacter l'administrateur."
+      });
     }
 
-    // Generate JWT
-    const token = jwt.sign(
-      { id: user._id, role: "comptable" },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    // Vérifier le mot de passe
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      // Enregistrer la tentative de connexion échouée (à implémenter si nécessaire)
+      return res.status(401).json({
+        success: false,
+        message: "Email ou mot de passe incorrect"
+      });
+    }
+
+    // Mettre à jour la date de dernière connexion
+    user.lastLogin = Date.now();
+    await user.save({ validateBeforeSave: false });
+
+    // Générer le token JWT
+    const token = user.generateAuthToken();
+
+    // Ne pas renvoyer le mot de passe dans la réponse
+    const { password: userPassword, ...userWithoutPassword } = user.toObject();
 
     res.status(200).json({
-      message: "Login successful",
+      success: true,
+      message: "Connexion réussie",
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        lastname: user.lastname,
-        cin: user.cin,
-        email: user.email,
-        role: "comptable",
-      },
+      user: userWithoutPassword
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error('Erreur lors de la connexion du comptable:', error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la connexion",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
-// get all  comptable
+/**
+ * Récupère la liste des comptables avec pagination et filtrage
+ * @route GET /api/comptables
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const getAllComptables = async (req, res) => {
   try {
-    const comptables = await Comptable.find();
-    res.status(200).json(comptables);
+    // Récupération des paramètres de requête
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Construction de la requête de filtrage
+    const query = {};
+    
+    // Filtre par recherche (nom, prénom, email)
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      query.$or = [
+        { name: searchRegex },
+        { lastname: searchRegex },
+        { email: searchRegex }
+      ];
+    }
+    
+    // Filtre par statut
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+    
+    // Tri
+    const sort = {};
+    const sortBy = req.query.sortBy || 'createdAt';
+    const order = req.query.order === 'asc' ? 1 : -1;
+    sort[sortBy] = order;
+    
+    // Exécution des requêtes en parallèle
+    const [comptables, total] = await Promise.all([
+      Comptable.find(query)
+        .select('-password')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Comptable.countDocuments(query)
+    ]);
+    
+    // Calcul des métadonnées de pagination
+    const pages = Math.ceil(total / limit);
+    
+    res.status(200).json({
+      success: true,
+      count: comptables.length,
+      page,
+      pages,
+      total,
+      data: comptables
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error('Erreur lors de la récupération des comptables:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des comptables',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
-// get comptable by id
+/**
+ * Récupère un comptable par son ID
+ * @route GET /api/comptables/:id
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const getComptableById = async (req, res) => {
   try {
     const { id } = req.params;
-    const found = await Comptable.findById(id);
-    if (!found) return res.status(404).json({ message: "Comptable not found" });
-    res.status(200).json(found);
+    
+    // Vérifier que l'ID est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de comptable invalide'
+      });
+    }
+    
+    // Récupérer le comptable sans le mot de passe
+    const comptable = await Comptable.findById(id).select('-password');
+    
+    if (!comptable) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comptable non trouvé'
+      });
+    }
+    
+    // Vérifier les permissions (seul un admin/super_admin peut voir les détails d'un autre utilisateur)
+    if (req.user.role !== 'super_admin' && 
+        req.user.role !== 'admin' && 
+        req.user.id !== id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Non autorisé à accéder à ces informations'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: comptable
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error('Erreur lors de la récupération du comptable:', error);
+    
+    // Gérer les erreurs de cast
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Format d\'ID invalide'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération du comptable',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
-// UPDATE comptable
+/**
+ * Met à jour un comptable existant
+ * @route PUT /api/comptables/:id
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const updateComptable = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     const { id } = req.params;
-    const { name, lastname, cin, email, password } = req.body;
-
-    const updateData = { name, lastname, cin, email };
-
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+    const updates = req.body;
+    
+    // Journalisation
+    console.log('Tentative de mise à jour du comptable:', { 
+      id, 
+      updates: { ...updates, password: updates.password ? '***' : 'non modifié' },
+      requestedBy: req.user.id 
+    });
+    
+    // Vérifier que l'ID est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'ID de comptable invalide'
+      });
     }
 
-    const updated = await Comptable.findByIdAndUpdate(id, updateData, {
-      new: true,
+    // Vérifier que le comptable existe
+    const comptable = await Comptable.findById(id).session(session);
+    if (!comptable) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: 'Comptable non trouvé'
+      });
+    }
+    
+    // Vérifier les permissions
+    // Un utilisateur ne peut modifier que son propre compte, sauf s'il est admin ou super_admin
+    const isSelfUpdate = req.user.id === id;
+    const isUpdatingComptable = comptable.role === 'comptable';
+    
+    if (!isSelfUpdate && req.user.role === 'comptable') {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: 'Non autorisé à modifier un autre compte'
+      });
+    }
+    
+    // Seul un super_admin peut modifier un autre admin ou super_admin
+    if ((comptable.role === 'admin' || comptable.role === 'super_admin') && 
+        req.user.role !== 'super_admin' && 
+        !isSelfUpdate) {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: 'Seul un super administrateur peut modifier un administrateur ou un autre super administrateur'
+      });
+    }
+    
+    // Mettre à jour le mot de passe si fourni
+    if (updates.password) {
+      if (updates.password.length < 8) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: 'Le mot de passe doit contenir au moins 8 caractères'
+        });
+      }
+      comptable.password = updates.password;
+      delete updates.password; // Pour éviter de le réécrire plus bas
+    }
+    
+    // Mettre à jour les autres champs
+    const allowedUpdates = ['name', 'lastname', 'cin', 'email', 'status', 'role'];
+    allowedUpdates.forEach(field => {
+      if (updates[field] !== undefined) {
+        // Vérification spéciale pour le rôle
+        if (field === 'role' && req.user.role !== 'super_admin') {
+          return; // Ignorer la mise à jour du rôle si pas super_admin
+        }
+        
+        if (field === 'email') {
+          comptable[field] = updates[field].toLowerCase().trim();
+        } else if (field === 'cin') {
+          comptable[field] = updates[field].trim().toUpperCase();
+        } else if (field === 'name' || field === 'lastname') {
+          comptable[field] = updates[field].trim();
+        } else {
+          comptable[field] = updates[field];
+        }
+      }
     });
-
-    if (!updated)
-      return res.status(404).json({ message: "Comptable not found" });
-
+    
+    // Vérifier les doublons d'email ou de CIN
+    const conditions = [];
+    
+    if (comptable.isModified('email')) {
+      conditions.push({ email: comptable.email, _id: { $ne: id } });
+    }
+    
+    if (comptable.isModified('cin')) {
+      conditions.push({ cin: comptable.cin, _id: { $ne: id } });
+    }
+    
+    if (conditions.length > 0) {
+      const existing = await Comptable.findOne({ $or: conditions }).session(session);
+      if (existing) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: existing.email === comptable.email 
+            ? 'Cet email est déjà utilisé' 
+            : 'Ce numéro CIN est déjà utilisé'
+        });
+      }
+    }
+    
+    // Sauvegarder les modifications
+    await comptable.save({ session, validateModifiedOnly: true });
+    await session.commitTransaction();
+    
+    // Ne pas renvoyer le mot de passe
+    const { password, ...updatedComptable } = comptable.toObject();
+    
+    console.log('Comptable mis à jour avec succès:', { 
+      id, 
+      email: updatedComptable.email,
+      updatedBy: req.user.id 
+    });
+    
     res.status(200).json({
-      message: "Comptable updated successfully",
-      comptable: updated,
+      success: true,
+      message: 'Comptable mis à jour avec succès',
+      data: updatedComptable
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    await session.abortTransaction();
+    console.error('Erreur lors de la mise à jour du comptable:', error);
+    
+    // Gérer les erreurs de validation
+    const validationError = handleValidationError(error, res);
+    if (validationError) return validationError;
+    
+    // Gérer les erreurs de doublon
+    const duplicateError = handleDuplicateKeyError(error, res);
+    if (duplicateError) return duplicateError;
+    
+    // Gérer les erreurs de cast
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Format d\'ID invalide'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour du comptable',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  } finally {
+    await session.endSession().catch(console.error);
   }
 };
 
-// DELETE comptable
+/**
+ * Supprime un comptable
+ * @route DELETE /api/comptables/:id
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const deleteComptable = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     const { id } = req.params;
-    const deleted = await Comptable.findByIdAndDelete(id);
-    if (!deleted)
-      return res.status(404).json({ message: "Comptable not found" });
-
-    res.status(200).json({ message: "Comptable deleted successfully" });
+    
+    // Journalisation
+    console.log('Tentative de suppression du comptable:', { 
+      id, 
+      requestedBy: req.user.id 
+    });
+    
+    // Vérifier que l'ID est valide
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'ID de comptable invalide'
+      });
+    }
+    
+    // Vérifier que le comptable existe
+    const comptable = await Comptable.findById(id).session(session);
+    if (!comptable) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: 'Comptable non trouvé'
+      });
+    }
+    
+    // Vérifier les permissions
+    // Un utilisateur ne peut pas se supprimer lui-même
+    if (req.user.id === id) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Vous ne pouvez pas supprimer votre propre compte'
+      });
+    }
+    
+    // Seul un super_admin peut supprimer un autre admin ou super_admin
+    const isDeletingAdmin = ['admin', 'super_admin'].includes(comptable.role);
+    if (isDeletingAdmin && req.user.role !== 'super_admin') {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: 'Seul un super administrateur peut supprimer un administrateur ou un autre super administrateur'
+      });
+    }
+    
+    // Empêcher la suppression d'un super_admin par un non super_admin
+    if (comptable.role === 'super_admin' && req.user.role !== 'super_admin') {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: 'Non autorisé à supprimer un super administrateur'
+      });
+    }
+    
+    // Vérifier s'il reste au moins un super_admin actif
+    if (comptable.role === 'super_admin') {
+      const superAdminCount = await Comptable.countDocuments({ 
+        role: 'super_admin',
+        _id: { $ne: id },
+        status: 'actif'
+      }).session(session);
+      
+      if (superAdminCount === 0) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: 'Impossible de supprimer le dernier super administrateur actif'
+        });
+      }
+    }
+    
+    // Supprimer le comptable
+    await Comptable.findByIdAndDelete(id).session(session);
+    await session.commitTransaction();
+    
+    console.log('Comptable supprimé avec succès:', { 
+      id, 
+      email: comptable.email,
+      deletedBy: req.user.id 
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Comptable supprimé avec succès',
+      data: {
+        id: comptable._id,
+        email: comptable.email,
+        role: comptable.role
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    await session.abortTransaction();
+    console.error('Erreur lors de la suppression du comptable:', error);
+    
+    // Gérer les erreurs de cast
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Format d\'ID invalide'
+      });
+    }
+    
+    // Gérer les erreurs de validation
+    const validationError = handleValidationError(error, res);
+    if (validationError) return validationError;
+    
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression du comptable',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  } finally {
+    await session.endSession().catch(console.error);
   }
 };
 
 // Gestion des utilisateurs par le comptable
 
-// Récupérer tous les utilisateurs avec filtrage par statut
+/**
+ * Récupère tous les utilisateurs avec filtrage par statut
+ * @route GET /api/comptables/users
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const getUsers = async (req, res) => {
-  console.log('=== DEBUT getUsers ===');
-  
   try {
-    // Vérifier si l'utilisateur est authentifié et a le bon rôle
-    if (!req.user || req.user.role !== 'comptable') {
-      console.error('Accès non autorisé:', req.user ? `Rôle ${req.user.role}` : 'Non authentifié');
-      return res.status(403).json({ 
+    console.log('Requête reçue pour récupérer les utilisateurs avec les paramètres:', req.query);
+    
+    const { status } = req.query;
+    const query = {};
+    
+    // Filtrer par statut si fourni
+    if (status) {
+      // Normaliser le statut pour gérer les variations de casse et d'accents
+      const normalizedStatus = status.toLowerCase();
+      
+      // Mapper les statuts pour gérer les variations
+      const statusMap = {
+        'en-attente': 'en-attente',
+        'en attente': 'en-attente',
+        'attente': 'en-attente',
+        'approuve': 'approuvé',
+        'approuvé': 'approuvé',
+        'valide': 'approuvé',
+        'non-approuve': 'non-approuvé',
+        'non approuve': 'non-approuvé',
+        'non-approuvé': 'non-approuvé',
+        'rejete': 'non-approuvé',
+        'rejeté': 'non-approuvé'
+      };
+      
+      query.status = statusMap[normalizedStatus] || status;
+      console.log('Statut normalisé pour la requête:', query.status);
+    }
+    
+    // Récupérer les utilisateurs avec pagination
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+    
+    console.log('Exécution de la requête avec les paramètres:', { query, skip, limit });
+    
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select('-password')
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(query)
+    ]);
+    
+    const pages = Math.ceil(total / limit);
+    
+    console.log(`Résultats: ${users.length} utilisateurs trouvés sur ${total}`);
+    
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      page,
+      pages,
+      total,
+      data: users
+    });
+    
+  } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs:', error);
+    
+    // Gestion des erreurs spécifiques
+    if (error.name === 'CastError') {
+      return res.status(400).json({
         success: false,
-        message: 'Accès non autorisé' 
+        message: 'Format de paramètre invalide',
+        field: error.path,
+        value: error.value
       });
     }
     
-    const { status = 'en-attente' } = req.query;
-    console.log('Requête reçue avec le statut:', status);
-    
-    // Créer le filtre de base
-    const filter = { 
-      role: { $in: ['formateur', 'coordinateur'] }
-    };
-
-    // Ajouter le filtre de statut si spécifié et valide
-    if (status && status !== 'tous') {
-      filter.status = status;
-    }
-    
-    console.log('Filtre appliqué:', JSON.stringify(filter));
-    
-    // Récupérer les utilisateurs avec le filtre
-    const users = await User.find(filter)
-      .select('-password -__v')
-      .lean();
-      
-    console.log(`Nombre d'utilisateurs trouvés: ${users.length}`);
-    
-    // S'assurer que chaque utilisateur a un statut valide
-    const validatedUsers = users.map(user => ({
-      ...user,
-      _id: user._id.toString(), // Convertir ObjectId en string
-      status: user.status || 'en-attente'
-    }));
-    
-    return res.status(200).json(validatedUsers);
-    
-  } catch (error) {
-    console.error('Erreur dans getUsers:', error);
-    return res.status(500).json({ 
+    // Réponse d'erreur générique
+    res.status(500).json({
       success: false,
-      message: 'Erreur serveur lors de la récupération des utilisateurs',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Erreur lors de la récupération des utilisateurs',
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : undefined
     });
-  } finally {
-    console.log('=== FIN getUsers ===');
   }
 };
 
-// Mettre à jour le statut d'un utilisateur
+/**
+ * Met à jour le statut d'un utilisateur
+ * @route PUT /api/comptables/users/:id/status
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const updateUserStatus = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     const { id } = req.params;
     const { status } = req.body;
-
-    if (!id) {
-      return res.status(400).json({ message: "ID utilisateur manquant" });
+    
+    // Vérifier que le statut est valide
+    const validStatuses = ['actif', 'inactif', 'en_attente'];
+    if (!status || !validStatuses.includes(status)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Statut invalide. Les valeurs autorisées sont: ' + validStatuses.join(', ')
+      });
     }
-
-    if (!status || !['en-attente', 'approuvé', 'non-approuvé'].includes(status)) {
-      return res.status(400).json({ message: "Statut invalide" });
-    }
-
-    // Vérifier que l'utilisateur existe et n'est pas un super_admin
-    const userToUpdate = await User.findById(id);
-    if (!userToUpdate) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
-    }
-
-    if (userToUpdate.role === 'super_admin') {
-      return res.status(403).json({ message: "Action non autorisée sur un super administrateur" });
-    }
-
-    // Mettre à jour le statut
-    const user = await User.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    
+    // Vérifier que l'utilisateur existe
+    const user = await User.findById(id).session(session);
     if (!user) {
-      return res.status(404).json({ message: "Erreur lors de la mise à jour de l'utilisateur" });
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
     }
-
-    res.status(200).json({ 
+    
+    // Mettre à jour le statut
+    user.status = status;
+    await user.save({ session });
+    await session.commitTransaction();
+    
+    // Ne pas renvoyer le mot de passe
+    const { password, ...userWithoutPassword } = user.toObject();
+    
+    res.status(200).json({
       success: true,
-      message: "Statut mis à jour avec succès", 
-      user 
+      message: 'Statut utilisateur mis à jour avec succès',
+      data: userWithoutPassword
     });
   } catch (error) {
-    console.error('Error in updateUserStatus:', error);
-    res.status(500).json({ 
+    await session.abortTransaction();
+    console.error('Erreur lors de la mise à jour du statut utilisateur:', error);
+    
+    // Gérer les erreurs de validation
+    const validationError = handleValidationError(error, res);
+    if (validationError) return validationError;
+    
+    // Gérer les erreurs de cast
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Format d\'ID invalide'
+      });
+    }
+    
+    res.status(500).json({
       success: false,
-      message: "Erreur lors de la mise à jour du statut", 
-      error: error.message 
+      message: 'Erreur lors de la mise à jour du statut utilisateur',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  } finally {
+    await session.endSession().catch(console.error);
   }
 };
 
-// Supprimer un utilisateur
+/**
+ * Supprime un utilisateur
+ * @route DELETE /api/comptables/users/:id
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ */
 export const deleteUser = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     const { id } = req.params;
-
+    
     // Vérifier que l'utilisateur existe
-    const user = await User.findById(id);
+    const user = await User.findById(id).session(session);
     if (!user) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
     }
-
-    // Ne pas permettre la suppression d'un super_admin
-    if (user.role === 'super_admin') {
-      return res.status(403).json({ message: "Action non autorisée" });
-    }
-
-    await User.findByIdAndDelete(id);
-    res.status(200).json({ message: "Utilisateur supprimé avec succès" });
+    
+    // Supprimer l'utilisateur
+    await User.findByIdAndDelete(id).session(session);
+    await session.commitTransaction();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Utilisateur supprimé avec succès',
+      data: {
+        id: user._id,
+        email: user.email
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la suppression de l'utilisateur", error: error.message });
+    await session.abortTransaction();
+    console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+    
+    // Gérer les erreurs de cast
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Format d\'ID invalide'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression de l\'utilisateur',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  } finally {
+    await session.endSession().catch(console.error);
   }
 };

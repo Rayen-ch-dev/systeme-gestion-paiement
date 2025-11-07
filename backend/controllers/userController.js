@@ -63,12 +63,12 @@ export const loginUser = async (req, res) => {
 
     // Mettre à jour le statut si nécessaire
     if (!user.status) {
-      user.status = 'en-attente';
-    }
-    
-    // Pour les comptables, forcer le statut à 'approuvé'
-    if (user.role === "comptable") {
-      user.status = 'approuvé';
+      // Les super_admins et les comptables sont automatiquement approuvés
+      if (user.role === 'super_admin' || user.role === 'comptable') {
+        user.status = 'approuvé';
+      } else {
+        user.status = 'en-attente';
+      }
     }
     
     // Sauvegarder les modifications
