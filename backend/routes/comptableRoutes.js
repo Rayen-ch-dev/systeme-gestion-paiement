@@ -85,8 +85,15 @@ const isOwnerOrAdmin = (req, res, next) => {
 // ==================== ROUTES DES COMPTABLES ====================
 
 /**
- * @route   POST /api/comptables
+ * @route   POST /api/comptables/register
  * @desc    Créer un nouveau comptable (admin/super_admin)
+ * @access  Privé (admin/super_admin)
+ */
+router.post("/register", requireAdmin, registerComptable);
+
+/**
+ * @route   POST /api/comptables
+ * @desc    Créer un nouveau comptable (admin/super_admin) - Ancienne route conservée pour compatibilité
  * @access  Privé (admin/super_admin)
  */
 router.post("/", requireAdmin, registerComptable);

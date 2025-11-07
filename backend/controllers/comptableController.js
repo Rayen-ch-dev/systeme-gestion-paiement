@@ -53,9 +53,6 @@ const handleDuplicateKeyError = (error, res) => {
  * @param {Object} res - Réponse Express
  */
 export const registerComptable = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { name, lastname, cin, email, password, role = 'comptable' } = req.body;
     
@@ -70,36 +67,40 @@ export const registerComptable = async (req, res) => {
 
     // Vérifier les permissions de l'utilisateur
     if (req.user.role !== 'super_admin' && role !== 'comptable') {
-      await session.abortTransaction();
       return res.status(403).json({
         success: false,
         message: "Vous n'êtes pas autorisé à créer un compte avec ce rôle"
       });
     }
 
-    // Création du nouveau comptable dans une transaction
-    const newComptable = await Comptable.create([{
-      name: name?.trim(),
-      lastname: lastname?.trim(),
-      cin: cin?.trim().toUpperCase(),
-      email: email?.toLowerCase().trim(),
+    // Vérifier que tous les champs requis sont présents
+    if (!name || !lastname || !cin || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tous les champs sont obligatoires'
+      });
+    }
+
+    // Création du nouveau comptable
+    const newComptable = new Comptable({
+      name: name.trim(),
+      lastname: lastname.trim(),
+      cin: cin.trim().toUpperCase(),
+      email: email.toLowerCase().trim(),
       password: password,
       role: role || 'comptable',
       status: 'actif'
-    }], { session });
+    });
 
-    const savedComptable = newComptable[0];
+    // Sauvegarder le nouveau comptable
+    const savedComptable = await newComptable.save();
     
     if (!savedComptable) {
-      await session.abortTransaction();
       return res.status(500).json({
         success: false,
         message: "Erreur lors de la création du compte"
       });
     }
-
-    // Valider la transaction
-    await session.commitTransaction();
     
     // Générer le token JWT
     const token = savedComptable.generateAuthToken();
@@ -120,9 +121,6 @@ export const registerComptable = async (req, res) => {
       comptable: comptableWithoutPassword 
     });
   } catch (error) {
-    // En cas d'erreur, annuler la transaction
-    await session.abortTransaction();
-    
     console.error('Erreur lors de la création du comptable:', error);
     
     // Gérer les erreurs de validation
@@ -139,9 +137,6 @@ export const registerComptable = async (req, res) => {
       message: "Erreur serveur lors de la création du compte",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
-  } finally {
-    // Toujours terminer la session
-    await session.endSession().catch(console.error);
   }
 };
 
@@ -357,9 +352,6 @@ export const getComptableById = async (req, res) => {
  * @param {Object} res - Réponse Express
  */
 export const updateComptable = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -373,7 +365,6 @@ export const updateComptable = async (req, res) => {
     
     // Vérifier que l'ID est valide
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message: 'ID de comptable invalide'
@@ -381,9 +372,8 @@ export const updateComptable = async (req, res) => {
     }
 
     // Vérifier que le comptable existe
-    const comptable = await Comptable.findById(id).session(session);
+    const comptable = await Comptable.findById(id);
     if (!comptable) {
-      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: 'Comptable non trouvé'
@@ -396,7 +386,6 @@ export const updateComptable = async (req, res) => {
     const isUpdatingComptable = comptable.role === 'comptable';
     
     if (!isSelfUpdate && req.user.role === 'comptable') {
-      await session.abortTransaction();
       return res.status(403).json({
         success: false,
         message: 'Non autorisé à modifier un autre compte'
@@ -407,7 +396,6 @@ export const updateComptable = async (req, res) => {
     if ((comptable.role === 'admin' || comptable.role === 'super_admin') && 
         req.user.role !== 'super_admin' && 
         !isSelfUpdate) {
-      await session.abortTransaction();
       return res.status(403).json({
         success: false,
         message: 'Seul un super administrateur peut modifier un administrateur ou un autre super administrateur'
@@ -417,18 +405,21 @@ export const updateComptable = async (req, res) => {
     // Mettre à jour le mot de passe si fourni
     if (updates.password) {
       if (updates.password.length < 8) {
-        await session.abortTransaction();
         return res.status(400).json({
           success: false,
           message: 'Le mot de passe doit contenir au moins 8 caractères'
         });
       }
-      comptable.password = updates.password;
+      // Hacher le mot de passe avant de le sauvegarder
+      const salt = await bcrypt.genSalt(10);
+      comptable.password = await bcrypt.hash(updates.password, salt);
       delete updates.password; // Pour éviter de le réécrire plus bas
     }
     
     // Mettre à jour les autres champs
     const allowedUpdates = ['name', 'lastname', 'cin', 'email', 'status', 'role'];
+    const updateData = {};
+    
     allowedUpdates.forEach(field => {
       if (updates[field] !== undefined) {
         // Vérification spéciale pour le rôle
@@ -437,53 +428,30 @@ export const updateComptable = async (req, res) => {
         }
         
         if (field === 'email') {
-          comptable[field] = updates[field].toLowerCase().trim();
+          updateData[field] = updates[field].toLowerCase().trim();
         } else if (field === 'cin') {
-          comptable[field] = updates[field].trim().toUpperCase();
+          updateData[field] = updates[field].trim().toUpperCase();
         } else if (field === 'name' || field === 'lastname') {
-          comptable[field] = updates[field].trim();
+          updateData[field] = updates[field].trim();
         } else {
-          comptable[field] = updates[field];
+          updateData[field] = updates[field];
         }
       }
     });
     
-    // Vérifier les doublons d'email ou de CIN
-    const conditions = [];
+    // Mettre à jour le document
+    const updatedComptable = await Comptable.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password');
     
-    if (comptable.isModified('email')) {
-      conditions.push({ email: comptable.email, _id: { $ne: id } });
+    if (!updatedComptable) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comptable non trouvé après la mise à jour'
+      });
     }
-    
-    if (comptable.isModified('cin')) {
-      conditions.push({ cin: comptable.cin, _id: { $ne: id } });
-    }
-    
-    if (conditions.length > 0) {
-      const existing = await Comptable.findOne({ $or: conditions }).session(session);
-      if (existing) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          success: false,
-          message: existing.email === comptable.email 
-            ? 'Cet email est déjà utilisé' 
-            : 'Ce numéro CIN est déjà utilisé'
-        });
-      }
-    }
-    
-    // Sauvegarder les modifications
-    await comptable.save({ session, validateModifiedOnly: true });
-    await session.commitTransaction();
-    
-    // Ne pas renvoyer le mot de passe
-    const { password, ...updatedComptable } = comptable.toObject();
-    
-    console.log('Comptable mis à jour avec succès:', { 
-      id, 
-      email: updatedComptable.email,
-      updatedBy: req.user.id 
-    });
     
     res.status(200).json({
       success: true,
@@ -491,7 +459,6 @@ export const updateComptable = async (req, res) => {
       data: updatedComptable
     });
   } catch (error) {
-    await session.abortTransaction();
     console.error('Erreur lors de la mise à jour du comptable:', error);
     
     // Gérer les erreurs de validation
