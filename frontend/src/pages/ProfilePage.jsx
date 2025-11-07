@@ -3,7 +3,21 @@ import { emailRegex, phoneRegex } from "../utils/data";
 import { profile as profileApi } from "../api";
 
 export default function ProfilePage() {
-  const roleFromStorage = typeof window !== "undefined" ? (localStorage.getItem("role") || "Formateur") : "Formateur";
+  // Récupérer le rôle depuis l'objet user dans localStorage
+  const [userRole, setUserRole] = useState("");
+  
+  useEffect(() => {
+    // Au chargement du composant, on récupère le rôle depuis l'utilisateur connecté
+    const userData = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setUserRole(user.role?.toLowerCase() || "");
+      } catch (e) {
+        console.error("Erreur lors de la lecture des données utilisateur", e);
+      }
+    }
+  }, []);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -13,6 +27,7 @@ export default function ProfilePage() {
     specialite: "",
     fonction: "",
   });
+  
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -21,20 +36,36 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("profil"); // profil | securite | metier
   const initials = `${(form.firstName || 'U').slice(0,1)}${(form.lastName || '').slice(0,1)}`.toUpperCase();
 
-  const onChange = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.value }));
+  const onChange = (k) => (e) => {
+    setForm((s) => ({ ...s, [k]: e.target.value }));
+  };
   const onBlur = (k) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   const validate = useMemo(() => (data) => {
     const e = {};
     if (!data.firstName.trim()) e.firstName = "Prénom requis";
     if (!data.lastName.trim()) e.lastName = "Nom requis";
-    if (!data.cin.trim() || !/^[A-Z0-9]{5,15}$/i.test(data.cin)) e.cin = "CIN invalide";
+    if (!data.cin.trim() || !/^[A-Z0-9]{5,15}$/i.test(data.cin)) {
+      e.cin = "CIN invalide (5-15 caractères alphanumériques)";
+    }
     if (!emailRegex.test(data.email)) e.email = "Email invalide";
-    if (!data.password || data.password.length < 6) e.password = "Mot de passe min. 6 caractères";
-    if (roleFromStorage === "Formateur" && !data.specialite.trim()) e.specialite = "Spécialité requise";
-    if (roleFromStorage === "Coordinateur" && !data.fonction.trim()) e.fonction = "Fonction requise";
+    
+    // Ne pas valider le mot de passe s'il n'est pas modifié
+    if (data.password && data.password.length > 0 && data.password.length < 6) {
+      e.password = "Mot de passe min. 6 caractères";
+    }
+    
+    // Validation conditionnelle en fonction du rôle
+    const role = userRole.toLowerCase();
+    if (role === "formateur" && !data.specialite?.trim()) {
+      e.specialite = "Spécialité requise";
+    }
+    if (role === "coordinateur" && !data.fonction?.trim()) {
+      e.fonction = "Fonction requise";
+    }
+    
     return e;
-  }, [roleFromStorage]);
+  }, [userRole]);
 
   useEffect(() => {
     setErrors(validate(form));
@@ -62,17 +93,38 @@ export default function ProfilePage() {
     e.preventDefault();
     const eMap = validate(form);
     setErrors(eMap);
-    setTouched({ firstName: true, lastName: true, cin: true, email: true, password: true, specialite: true, fonction: true });
+    setTouched({ 
+      firstName: true, 
+      lastName: true, 
+      cin: true, 
+      email: true, 
+      password: true, 
+      specialite: true, 
+      fonction: true 
+    });
+    
     if (Object.keys(eMap).length > 0) return;
+    
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSaving(false);
-    setSaved(true);
-    const result = await profileApi.updateProfile({ ...form });
-    if (!result.ok) {
-      // keep UI unchanged; optionally we could surface an error later
+    try {
+      // Ne pas envoyer le mot de passe s'il n'a pas été modifié
+      const dataToUpdate = { ...form };
+      if (!dataToUpdate.password) {
+        delete dataToUpdate.password;
+      }
+      
+      const result = await profileApi.updateProfile(dataToUpdate);
+      if (result.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } else {
+        console.error("Erreur lors de la mise à jour du profil");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du profil:", error);
+    } finally {
+      setSaving(false);
     }
-    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
@@ -90,7 +142,7 @@ export default function ProfilePage() {
               </div>
               <div className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 text-brand-700 px-3 py-1 text-[11px] font-medium">
                 <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
-                <span>{roleFromStorage}</span>
+                <span className="capitalize">{userRole}</span>
               </div>
             </div>
 
@@ -134,8 +186,14 @@ export default function ProfilePage() {
                   </label>
                   <label className="block">
                     <span className="text-sm text-slate-700">CIN</span>
-                    <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.cin && touched.cin) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.cin} onChange={onChange("cin")} onBlur={onBlur("cin")} placeholder="Ex: AA123456" />
-                    {(errors.cin && touched.cin) ? <span className="text-xs text-red-600">{errors.cin}</span> : null}
+                    <input 
+                      type="text" 
+                      readOnly
+                      className="mt-1 w-full rounded-md border px-3 py-2 text-slate-600 bg-slate-50 border-slate-200 cursor-not-allowed" 
+                      value={form.cin} 
+                      placeholder="Votre CIN" 
+                    />
+                    <p className="mt-1 text-xs text-slate-500">Le CIN ne peut pas être modifié</p>
                   </label>
                   <label className="block">
                     <span className="text-sm text-slate-700">Email</span>
@@ -168,25 +226,49 @@ export default function ProfilePage() {
                 </div>
               ) : null}
 
-              {activeTab === "metier" ? (
+              {activeTab === "metier" && (
                 <div className="grid grid-cols-1 gap-4">
-                  {roleFromStorage === "Formateur" ? (
+                  {(userRole === "formateur" || userRole === "Formateur") ? (
                     <label className="block">
                       <span className="text-sm text-slate-700">Spécialité</span>
-                      <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.specialite && touched.specialite) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.specialite} onChange={onChange("specialite")} onBlur={onBlur("specialite")} placeholder="Ex: React, Data, Réseaux..." />
-                      {(errors.specialite && touched.specialite) ? <span className="text-xs text-red-600">{errors.specialite}</span> : null}
+                      <input 
+                        className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${
+                          (errors.specialite && touched.specialite) 
+                            ? "border-red-300 focus:ring-red-300" 
+                            : "border-slate-200 focus:ring-brand-300"
+                        }`} 
+                        value={form.specialite || ''} 
+                        onChange={onChange("specialite")} 
+                        onBlur={onBlur("specialite")} 
+                        placeholder="Ex: React, Data, Réseaux..." 
+                      />
+                      {errors.specialite && touched.specialite && (
+                        <span className="text-xs text-red-600">{errors.specialite}</span>
+                      )}
                     </label>
                   ) : null}
 
-                  {roleFromStorage === "Coordinateur" ? (
+                  {(userRole === "coordinateur" || userRole === "Coordinateur") ? (
                     <label className="block">
                       <span className="text-sm text-slate-700">Fonction</span>
-                      <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.fonction && touched.fonction) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.fonction} onChange={onChange("fonction")} onBlur={onBlur("fonction")} placeholder="Ex: Coordination pédagogique" />
-                      {(errors.fonction && touched.fonction) ? <span className="text-xs text-red-600">{errors.fonction}</span> : null}
+                      <input 
+                        className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${
+                          (errors.fonction && touched.fonction) 
+                            ? "border-red-300 focus:ring-red-300" 
+                            : "border-slate-200 focus:ring-brand-300"
+                        }`} 
+                        value={form.fonction || ''} 
+                        onChange={onChange("fonction")} 
+                        onBlur={onBlur("fonction")} 
+                        placeholder="Ex: Coordination pédagogique" 
+                      />
+                      {errors.fonction && touched.fonction && (
+                        <span className="text-xs text-red-600">{errors.fonction}</span>
+                      )}
                     </label>
                   ) : null}
                 </div>
-              ) : null}
+              )}
 
               <div className="mt-6 border-t border-white/60 pt-5">
                 <div className="flex items-center gap-3 justify-end">

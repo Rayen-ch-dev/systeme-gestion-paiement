@@ -24,15 +24,50 @@ export const auth = {
     const role = user?.role || null;
 
     try {
-      if (token) localStorage.setItem("token", token);
-      if (role) localStorage.setItem("role", role);
-      const existing = localStorage.getItem("profile");
-      const current = existing ? JSON.parse(existing) : {};
-      const nextProfile = { ...current, email: user.email || email, name: user.name, lastname: user.lastname };
-      localStorage.setItem("profile", JSON.stringify(nextProfile));
-    } catch {}
+      // Store the complete user object in localStorage
+      const userData = {
+        ...user,
+        token,
+        role,
+        // Ensure we have all required fields
+        firstName: user.firstName || user.name || '',
+        lastName: user.lastName || user.lastname || '',
+        email: user.email || email,
+        cin: user.cin || '',
+        specialite: user.specialite || '',
+        fonction: user.fonction || ''
+      };
+      
+      // Store user data
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // For backward compatibility, also store in profile
+      const profileData = {
+        ...userData,
+        name: userData.firstName, // For backward compatibility
+        lastname: userData.lastName // For backward compatibility
+      };
+      localStorage.setItem('profile', JSON.stringify(profileData));
+      
+      // Store token and role separately for backward compatibility
+      if (token) localStorage.setItem('token', token);
+      if (role) localStorage.setItem('role', role);
+      
+    } catch (error) {
+      console.error('Error storing user data:', error);
+      return { status: "rejected", error: "Error saving user data" };
+    }
 
-    return { status: "active", role, token, user };
+    return { 
+      status: "active", 
+      role, 
+      token, 
+      user: {
+        ...user,
+        firstName: user.firstName || user.name || '',
+        lastName: user.lastName || user.lastname || ''
+      } 
+    };
   },
 
   async register({ name, lastname, cin, email, password, role, banque, rib }) {
@@ -75,9 +110,29 @@ export const profile = {
   async getProfile() {
     await new Promise((r) => setTimeout(r, 150));
     try {
-      const raw = localStorage.getItem("profile");
-      return raw ? JSON.parse(raw) : {};
-    } catch {
+      // Get the complete user object from localStorage
+      const userRaw = localStorage.getItem('user');
+      const user = userRaw ? JSON.parse(userRaw) : {};
+      
+      // Get additional profile data if it exists
+      const profileRaw = localStorage.getItem("profile");
+      const profile = profileRaw ? JSON.parse(profileRaw) : {};
+      
+      // Return combined user data with profile data
+      return {
+        ...user,
+        ...profile,
+        // Ensure we have all required fields with fallbacks
+        firstName: user.firstName || user.name || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        cin: user.cin || '',
+        specialite: user.specialite || '',
+        fonction: user.fonction || '',
+        role: user.role || ''
+      };
+    } catch (error) {
+      console.error('Error getting profile:', error);
       return {};
     }
   },
@@ -87,11 +142,44 @@ export const profile = {
     if (!data) return { ok: false, error: "Invalid payload" };
     await new Promise((r) => setTimeout(r, 250));
     try {
-      const existing = localStorage.getItem("profile");
-      const current = existing ? JSON.parse(existing) : {};
-      const next = { ...current, ...data };
-      localStorage.setItem("profile", JSON.stringify(next));
-      return { ok: true, profile: next };
+      // Get existing user data
+      const userRaw = localStorage.getItem('user');
+      const user = userRaw ? JSON.parse(userRaw) : {};
+      
+      // Update user data with new values
+      const updatedUser = {
+        ...user,
+        firstName: data.firstName !== undefined ? data.firstName : user.firstName,
+        lastName: data.lastName !== undefined ? data.lastName : user.lastName,
+        email: data.email !== undefined ? data.email : user.email,
+        cin: data.cin !== undefined ? data.cin : user.cin,
+        specialite: data.specialite !== undefined ? data.specialite : user.specialite,
+        fonction: data.fonction !== undefined ? data.fonction : user.fonction,
+      };
+      
+      // Save updated user data
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Also update profile data for backward compatibility
+      const profileRaw = localStorage.getItem("profile") || '{}';
+      const currentProfile = JSON.parse(profileRaw);
+      const updatedProfile = {
+        ...currentProfile,
+        ...data,
+        // Ensure name fields are in sync
+        name: data.firstName || currentProfile.name,
+        lastname: data.lastName || currentProfile.lastname
+      };
+      
+      localStorage.setItem("profile", JSON.stringify(updatedProfile));
+      
+      return { 
+        ok: true, 
+        profile: {
+          ...updatedUser,
+          ...updatedProfile
+        }
+      };
     } catch (e) {
       return { ok: false, error: "Storage error" };
     }

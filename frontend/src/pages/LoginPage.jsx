@@ -28,26 +28,52 @@ export default function LoginPage() {
       } else if (res.status === "active") {
         setStatus("active");
         setRole(res.role);
-        // simulate redirection to role-specific dashboard
-        // replace with actual routing when backend is ready
-        try {
-          if (typeof window !== "undefined") {
-            localStorage.setItem("role", res.role);
-            // persist a minimal profile for header/slide-over usage
-            const existing = localStorage.getItem("profile");
-            const current = existing ? JSON.parse(existing) : {};
-            const nextProfile = {
-              ...current,
-              email: values.email || current.email || "",
-            };
-            localStorage.setItem("profile", JSON.stringify(nextProfile));
+        
+        // Store user data in localStorage
+        if (typeof window !== "undefined") {
+          // Store the complete user object in localStorage
+          if (res.user) {
+            localStorage.setItem('user', JSON.stringify({
+              ...res.user,
+              role: res.role,
+              token: res.token
+            }));
+          } else {
+            // Fallback in case user object is not in the response
+            localStorage.setItem('user', JSON.stringify({
+              email: values.email,
+              role: res.role,
+              token: res.token
+            }));
           }
-        } catch {}
-        setTimeout(() => {
-          // example redirect path
-          const path = `/dashboard/${res.role.replace(/\s+/g, "-").toLowerCase()}`;
-          window.location.href = path;
-        }, 800);
+          
+          // Also store token and role separately for backward compatibility
+          if (res.token) localStorage.setItem('token', res.token);
+          if (res.role) localStorage.setItem('role', res.role);
+          
+          // Store profile information
+          const existing = localStorage.getItem("profile");
+          const current = existing ? JSON.parse(existing) : {};
+          const nextProfile = {
+            ...current,
+            email: values.email || current.email || "",
+            name: res.user?.name || current.name || "",
+            lastname: res.user?.lastname || current.lastname || ""
+          };
+          localStorage.setItem("profile", JSON.stringify(nextProfile));
+          
+          // Redirect based on user role
+          let redirectPath = '/dashboard';
+          
+          if (res.role === 'admin' || res.role === 'comptable') {
+            redirectPath = '/admin/dashboard';
+          } else if (res.role === 'superadmin') {
+            redirectPath = '/superadmin/dashboard';
+          }
+          
+          // Force a full page reload to ensure all auth state is properly initialized
+          window.location.href = redirectPath;
+        }
       }
     } catch (err) {
       console.error(err);
