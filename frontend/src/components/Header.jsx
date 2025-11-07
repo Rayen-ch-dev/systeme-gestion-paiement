@@ -9,8 +9,8 @@ export default function Header() {
       const raw = localStorage.getItem("profile");
       if (raw) {
         const p = JSON.parse(raw);
-        const fn = p.firstName || "";
-        const ln = p.lastName || "";
+        const fn = p.name || "";
+        const ln = p.lastname || "";
         displayName = (fn + (ln ? " " + ln : "")).trim() || displayName;
         const a = (fn || "U").slice(0,1);
         const b = (ln || "").slice(0,1);

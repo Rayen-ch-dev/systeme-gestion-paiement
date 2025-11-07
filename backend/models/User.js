@@ -54,6 +54,16 @@ const userSchema = new mongoose.Schema({
     enum: ["super_admin","formateur", "coordinateur"],
     default: "formateur",
   },
+    specialite: {
+    type: String,
+    required: function() { return this.role === "formateur"; },
+    trim: true,
+  },
+    fonction: {
+    type: String,
+    required: function() { return this.role === "coordinateur"; },
+    trim: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -71,16 +71,50 @@ export const auth = {
   },
 };
 
-export const profile = {
-  async getProfile() {
-    await new Promise((r) => setTimeout(r, 150));
-    try {
-      const raw = localStorage.getItem("profile");
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  },
+ async function getProfile() {
+  const res = await fetch("/api/users/getUserById", {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const data = await res.json().catch(() => ({}));
+  
+  if (!res.ok) {
+    return { ok: false, error: data?.message || `HTTP ${res.status}` };
+  }
+
+  try {
+    const existing = localStorage.getItem("profile");
+    const current = existing ? JSON.parse(existing) : {};
+    const next = { ...current, email: data.user?.email, name: data.user?.name, lastname: data.user?.lastname };
+    localStorage.setItem("profile", JSON.stringify(next));
+  } catch {}
+
+  return { ok: true, user: data?.user };
+},
+export async function getProfile() {
+  const res = await fetch("/api/users/getUserById", {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const data = await res.json().catch(() => ({}));
+  
+  if (!res.ok) {
+    return { ok: false, error: data?.message || `HTTP ${res.status}` };
+  }
+
+  try {
+    const existing = localStorage.getItem("profile");
+    const current = existing ? JSON.parse(existing) : {};
+    const next = { ...current, email: data.user?.email, name: data.user?.name, lastname: data.user?.lastname };
+    localStorage.setItem("profile", JSON.stringify(next));
+  } catch {}
+
+  return { ok: true, user: data?.user };
+}
+
+
 
   async updateProfile(data) {
     // Validate on front only (pages already validate fields; this is a safety net)

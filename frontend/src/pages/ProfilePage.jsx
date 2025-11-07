@@ -5,8 +5,8 @@ import { profile as profileApi } from "../api";
 export default function ProfilePage() {
   const roleFromStorage = typeof window !== "undefined" ? (localStorage.getItem("role") || "Formateur") : "Formateur";
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
+    lastname: "",
     cin: "",
     email: "",
     password: "",
@@ -19,15 +19,15 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [activeTab, setActiveTab] = useState("profil"); // profil | securite | metier
-  const initials = `${(form.firstName || 'U').slice(0,1)}${(form.lastName || '').slice(0,1)}`.toUpperCase();
+  const initials = `${(form.name || 'U').slice(0,1)}${(form.lastname || '').slice(0,1)}`.toUpperCase();
 
   const onChange = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.value }));
   const onBlur = (k) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   const validate = useMemo(() => (data) => {
     const e = {};
-    if (!data.firstName.trim()) e.firstName = "Prénom requis";
-    if (!data.lastName.trim()) e.lastName = "Nom requis";
+    if (!data.name.trim()) e.name = "Prénom requis";
+    if (!data.lastname.trim()) e.lastname = "Nom requis";
     if (!data.cin.trim() || !/^[A-Z0-9]{5,15}$/i.test(data.cin)) e.cin = "CIN invalide";
     if (!emailRegex.test(data.email)) e.email = "Email invalide";
     if (!data.password || data.password.length < 6) e.password = "Mot de passe min. 6 caractères";
@@ -45,8 +45,8 @@ export default function ProfilePage() {
       const p = await profileApi.getProfile();
       setForm((s) => ({
         ...s,
-        firstName: p.firstName || "",
-        lastName: p.lastName || "",
+        name: p.name || "",
+        lastname: p.lastname || "",
         cin: p.cin || "",
         email: p.email || "",
         password: p.password || "",
@@ -62,7 +62,7 @@ export default function ProfilePage() {
     e.preventDefault();
     const eMap = validate(form);
     setErrors(eMap);
-    setTouched({ firstName: true, lastName: true, cin: true, email: true, password: true, specialite: true, fonction: true });
+    setTouched({ ame: true, lastname: true, cin: true, email: true, password: true, specialite: true, fonction: true });
     if (Object.keys(eMap).length > 0) return;
     setSaving(true);
     await new Promise((r) => setTimeout(r, 800));
@@ -123,14 +123,14 @@ export default function ProfilePage() {
                       <span className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                       </span>
-                      <input className={`w-full rounded-md border pl-9 pr-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.firstName && touched.firstName) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.firstName} onChange={onChange("firstName")} onBlur={onBlur("firstName")} placeholder="Ex: Salma" />
+                      <input className={`w-full rounded-md border pl-9 pr-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.name && touched.name) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.name} onChange={onChange("name")} onBlur={onBlur("name")} placeholder="Ex: Salma" />
                     </div>
-                    {(errors.firstName && touched.firstName) ? <span className="text-xs text-red-600">{errors.firstName}</span> : null}
+                    {(errors.name && touched.name) ? <span className="text-xs text-red-600">{errors.name}</span> : null}
                   </label>
                   <label className="block">
                     <span className="text-sm text-slate-700">Nom</span>
-                    <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.lastName && touched.lastName) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.lastName} onChange={onChange("lastName")} onBlur={onBlur("lastName")} placeholder="Ex: Ben Ali" />
-                    {(errors.lastName && touched.lastName) ? <span className="text-xs text-red-600">{errors.lastName}</span> : null}
+                    <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.lastname && touched.lastname) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.lastname} onChange={onChange("lastname")} onBlur={onBlur("lastname")} placeholder="Ex: Ben Ali" />
+                    {(errors.lastname && touched.lastname) ? <span className="text-xs text-red-600">{errors.lastname}</span> : null}
                   </label>
                   <label className="block">
                     <span className="text-sm text-slate-700">CIN</span>
