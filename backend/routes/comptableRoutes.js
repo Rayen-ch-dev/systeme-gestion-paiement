@@ -53,16 +53,18 @@ const requireSuperAdmin = (req, res, next) => {
 };
 
 /**
- * Middleware pour vérifier les droits de gestion des comptables
- * Autorise les rôles 'super_admin', 'admin' et 'comptable'
+ * Middleware pour vérifier les droits de gestion des utilisateurs
+ * Autorise les rôles 'super_admin' et 'comptable'
  */
-const canManageComptables = (req, res, next) => {
-  if (['super_admin', 'admin', 'comptable'].includes(req.user.role)) {
+const canManageUsers = (req, res, next) => {
+  console.log('Vérification des droits pour le rôle:', req.user.role);
+  if (['super_admin', 'comptable'].includes(req.user.role)) {
     return next();
   }
+  console.log('Accès refusé pour le rôle:', req.user.role);
   return res.status(403).json({ 
     success: false, 
-    message: 'Droits insuffisants pour gérer les comptables' 
+    message: 'Droits insuffisants pour accéder à cette ressource' 
   });
 };
 
@@ -101,9 +103,9 @@ router.post("/", requireAdmin, registerComptable);
 /**
  * @route   GET /api/comptables
  * @desc    Récupérer tous les comptables
- * @access  Privé (admin/super_admin/comptable)
+ * @access  Privé (super_admin/comptable)
  */
-router.get("/", canManageComptables, getAllComptables);
+router.get("/", canManageUsers, getAllComptables);
 
 /**
  * @route   GET /api/comptables/:id
@@ -131,9 +133,9 @@ router.delete("/:id", requireAdmin, deleteComptable);
 /**
  * @route   GET /api/comptables/users
  * @desc    Récupérer tous les utilisateurs (avec filtres)
- * @access  Privé (admin/super_admin/comptable)
+ * @access  Privé (super_admin/comptable)
  */
-router.get("/users", canManageComptables, getUsers);
+router.get("/users", canManageUsers, getUsers);
 
 /**
  * @route   PUT /api/comptables/users/:id/status

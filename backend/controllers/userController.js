@@ -71,6 +71,13 @@ export const loginUser = async (req, res) => {
       }
     }
     
+    // Vérifier si l'utilisateur est approuvé
+    if (user.status !== 'approuvé' && user.role !== 'super_admin') {
+      return res.status(403).json({ 
+        message: "Votre compte n'est pas encore approuvé par l'administrateur" 
+      });
+    }
+    
     // Sauvegarder les modifications
     await user.save();
     
@@ -81,21 +88,32 @@ export const loginUser = async (req, res) => {
       { expiresIn: "1d" }
     );
     
-    // Préparer la réponse
+    // Préparer la réponse avec toutes les informations utilisateur
+    const userResponse = {
+      id: user._id,
+      name: user.name,
+      lastname: user.lastname,
+      cin: user.cin,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      specialite: user.specialite,
+      fonction: user.fonction,
+      banque: user.banque,
+      rib: user.rib,
+      createdAt: user.createdAt
+    };
+    
+    // Si l'utilisateur est un comptable, on peut ajouter des champs spécifiques si nécessaire
+    if (user.role === 'comptable') {
+      // Ajouter des champs spécifiques aux comptables si nécessaire
+      userResponse.isComptable = true;
+    }
+    
     const response = {
       message: "Connexion réussie",
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        lastname: user.lastname,
-        cin: user.cin,
-        email: user.email,
-        rib: user.rib,
-        banque: user.banque,
-        role: user.role,
-        status: user.status
-      }
+      user: userResponse
     };
     
     return res.status(200).json(response);

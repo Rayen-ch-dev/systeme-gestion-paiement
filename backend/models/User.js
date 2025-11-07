@@ -36,7 +36,13 @@ const userSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["en-attente", "approuvé", "non-approuvé"],
-    default: "en-attente",
+    default: function() {
+      // Les super_admins et les comptables sont automatiquement approuvés
+      if (this.role === 'super_admin' || this.role === 'comptable') {
+        return 'approuvé';
+      }
+      return 'en-attente';
+    },
     required: function() { return this.role !== "super_admin" && this.role !== "comptable"; }
   },
   rib: {
