@@ -86,7 +86,8 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      const payload = {
+      if(role === "formateur"){
+      var payload = {
         name: form.firstName,
         lastname: form.lastName,
         cin: form.cin,
@@ -95,7 +96,21 @@ export default function RegisterPage() {
         role: role, // "formateur" | "coordinateur"
         banque: form.bank,
         rib: form.rib,
+        specialite: form.specialite,
       };
+      }else if(role === "coordinateur"){
+      var payload = {
+        name: form.firstName,
+        lastname: form.lastName,
+        cin: form.cin,
+        email: form.email,
+        password: form.password,
+        role: role, // "formateur" | "coordinateur"
+        banque: form.bank,
+        rib: form.rib,
+        fonction: form.fonction,
+      };}
+
       const res = await auth.register(payload);
       if (!res.ok) {
         console.error(res.error || "Registration failed");

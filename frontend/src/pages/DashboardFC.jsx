@@ -19,12 +19,13 @@ export default function Dashboard() {
   const isCoordinateur = role === "Coordinateur";
   const [expanded, setExpanded] = useState(false);
   const [pwdVisible, setPwdVisible] = useState(false);
-  const [profile, setProfile] = useState({ firstName: "", lastName: "", email: "", cin: "", password: "", specialite: "", fonction: "" });
+  const [profile, setProfile] = useState({ name: "", lastname: "", email: "", cin: "", password: "", specialite: "", fonction: "" });
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem("profile") : null;
+      console.log(raw);
       if (raw) setProfile(JSON.parse(raw));
     } catch {}
   }, []);
@@ -69,10 +70,10 @@ export default function Dashboard() {
               <div className="p-4 border-b border-white/60 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-semibold ring-4 ring-white/60 shadow-sm">
-                    {((profile.firstName||'U')[0]||'U').toUpperCase()}
+                    {((profile.name||'U')[0]||'U').toUpperCase()}
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-slate-900">{(profile.firstName||'Utilisateur') + (profile.lastName ? ' ' + profile.lastName : '')}</div>
+                    <div className="text-sm font-semibold text-slate-900">{(profile.name||'Utilisateur') + (profile.lastname ? ' ' + profile.lastname : '')}</div>
                     <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-brand-500/10 text-brand-700 px-2 py-0.5 text-[11px] font-medium shadow-sm">
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
                       <span>{role}</span>
@@ -92,11 +93,11 @@ export default function Dashboard() {
                   <div className="px-3 pb-3 text-sm divide-y divide-slate-100/80">
                     <div className="flex items-start py-2">
                       <span className="text-slate-500 w-28 shrink-0">Prénom</span>
-                      <span className="font-medium text-slate-800">{profile.firstName||'—'}</span>
+                      <span className="font-medium text-slate-800">{profile.name||'—'}</span>
                     </div>
                     <div className="flex items-start py-2">
                       <span className="text-slate-500 w-28 shrink-0">Nom</span>
-                      <span className="font-medium text-slate-800">{profile.lastName||'—'}</span>
+                      <span className="font-medium text-slate-800">{profile.lastname||'—'}</span>
                     </div>
                     <div className="flex items-start py-2">
                       <span className="text-slate-500 w-28 shrink-0">Email</span>

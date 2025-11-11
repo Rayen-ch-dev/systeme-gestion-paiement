@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { emailRegex } from "../utils/data";
-import { profile as profileApi } from "../api";
+import { getProfile  } from "../api";
 
 export default function ProfilePage() {
   const roleFromStorage = typeof window !== "undefined" ? (localStorage.getItem("role") || "Formateur") : "Formateur";
@@ -40,21 +40,29 @@ export default function ProfilePage() {
     setErrors(validate(form));
   }, [form, validate]);
 
-  useEffect(() => {
-    (async () => {
-      const p = await profileApi.getProfile();
+useEffect(() => {
+  (async () => {
+    const p = await getProfile("69134aae7a7a24bda6c59a63");
+
+    if (p.ok && p.user) {
       setForm((s) => ({
         ...s,
-        name: p.name || "",
-        lastname: p.lastname || "",
-        cin: p.cin || "",
-        email: p.email || "",
-        password: p.password || "",
-        specialite: p.specialite || "",
-        fonction: p.fonction || "",
+        name: p.user.name || "",
+        lastname: p.user.lastname || "",
+        cin: p.user.cin || "",
+        email: p.user.email || "",
+        password: p.user.password || "",
+        specialite: p.user.specialite || "",
+        fonction: p.user.fonction || "",
+        banque: p.user.banque || "",
+        rib: p.user.rib || "",
       }));
-    })();
-  }, []);
+    } else {
+      console.error("Erreur de chargement du profil :", p.error);
+    }
+  })();
+}, []);
+
 
   const canSave = Object.keys(errors).length === 0;
 

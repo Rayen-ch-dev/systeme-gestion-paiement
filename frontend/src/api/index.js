@@ -35,34 +35,58 @@ export const auth = {
     return { status: "active", role, token, user };
   },
 
-  async register({ name, lastname, cin, email, password, role, banque, rib }) {
-    if (!name || !lastname || !cin || !email || !password) {
-      return { ok: false, error: "Champs requis manquants" };
-    }
-    if (role !== "super_admin") {
-      if (!banque || !rib) return { ok: false, error: "Banque et RIB requis" };
-    }
+  async register({ name, lastname, cin, email, password, role, banque, rib, specialite, fonction }) {
+  // Vérification des champs de base
+  if (!name || !lastname || !cin || !email || !password || !role) {
+    return { ok: false, error: "Champs requis manquants" };
+  }
 
-    const res = await fetch("/api/users/register", {
+  // Règles spécifiques selon le rôle
+  if (role === "formateur") {
+    if (!specialite) {
+      return { ok: false, error: "Le champ spécialité est obligatoire pour les formateurs" };
+    }
+    if (!banque || !rib) {
+      return { ok: false, error: "Banque et RIB sont obligatoires pour les formateurs" };
+    }
+  } else if (role === "coordinateur") {
+    if (!fonction) {
+      return { ok: false, error: "Le champ fonction est obligatoire pour les coordinateurs" };
+    }
+    if (!banque || !rib) {
+      return { ok: false, error: "Banque et RIB sont obligatoires pour les coordinateurs" };
+    }
+  }
+
+  // Les autres rôles (ex: super_admin) n’ont pas besoin de banque/rib/spécialité/fonction
+
+  try {
+    const res = await fetch("http://localhost:5000/api/users/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, lastname, cin, email, password, role, banque, rib }),
+      body: JSON.stringify({ name, lastname, cin, email, password, role, banque, rib, specialite, fonction }),
     });
 
     const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
       return { ok: false, error: data?.message || `HTTP ${res.status}` };
     }
 
-    try {
-      const existing = localStorage.getItem("profile");
-      const current = existing ? JSON.parse(existing) : {};
-      const next = { ...current, email, name, lastname };
-      localStorage.setItem("profile", JSON.stringify(next));
-    } catch {}
+    // Sauvegarde locale du profil
+    const existing = localStorage.getItem("profile");
+    const current = existing ? JSON.parse(existing) : {};
+    const next = { ...current, email, name, lastname };
+    localStorage.setItem("profile", JSON.stringify(next));
 
     return { ok: true, user: data?.user };
-  },
+
+  } catch (error) {
+    console.error("Erreur de connexion :", error);
+    return { ok: false, error: "Impossible de se connecter au serveur" };
+  }
+}
+,
 
   async logout() {
     await new Promise((r) => setTimeout(r, 100));
@@ -71,52 +95,34 @@ export const auth = {
   },
 };
 
- async function getProfile() {
-  const res = await fetch("/api/users/getUserById", {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
-
-  const data = await res.json().catch(() => ({}));
-  
-  if (!res.ok) {
-    return { ok: false, error: data?.message || `HTTP ${res.status}` };
+export async function getProfile(userId) {
+  if (!userId) {
+    return { ok: false, error: "ID utilisateur manquant" };
   }
 
   try {
-    const existing = localStorage.getItem("profile");
-    const current = existing ? JSON.parse(existing) : {};
-    const next = { ...current, email: data.user?.email, name: data.user?.name, lastname: data.user?.lastname };
-    localStorage.setItem("profile", JSON.stringify(next));
-  } catch {}
+    const res = await fetch(`http://localhost:5000/api/users/getUserById/${userId}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
 
-  return { ok: true, user: data?.user };
-},
-export async function getProfile() {
-  const res = await fetch("/api/users/getUserById", {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
+    const data = await res.json().catch(() => ({}));
 
-  const data = await res.json().catch(() => ({}));
-  
-  if (!res.ok) {
-    return { ok: false, error: data?.message || `HTTP ${res.status}` };
+    if (!res.ok) {
+      return { ok: false, error: data?.message || `HTTP ${res.status}` };
+    }
+
+    return { ok: true, user: data?.user };
+  } catch (error) {
+    console.error("Erreur lors de la récupération du profil :", error);
+    return { ok: false, error: "Impossible de contacter le serveur" };
   }
-
-  try {
-    const existing = localStorage.getItem("profile");
-    const current = existing ? JSON.parse(existing) : {};
-    const next = { ...current, email: data.user?.email, name: data.user?.name, lastname: data.user?.lastname };
-    localStorage.setItem("profile", JSON.stringify(next));
-  } catch {}
-
-  return { ok: true, user: data?.user };
 }
 
 
 
-  async updateProfile(data) {
+
+ /* async updateProfile(data) {
     // Validate on front only (pages already validate fields; this is a safety net)
     if (!data) return { ok: false, error: "Invalid payload" };
     await new Promise((r) => setTimeout(r, 250));
@@ -129,5 +135,5 @@ export async function getProfile() {
     } catch (e) {
       return { ok: false, error: "Storage error" };
     }
-  },
-};
+  },*/
+

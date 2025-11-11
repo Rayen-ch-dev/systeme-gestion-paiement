@@ -39,6 +39,12 @@ export default function LoginPage() {
             const nextProfile = {
               ...current,
               email: values.email || current.email || "",
+              name: values.name || current.name || "",
+              lastname: values.lastname || current.lastname || "",
+              cin: values.cin || current.cin || "",
+              password: values.password || current.password || "",
+              specialite: values.specialite || current.specialite || "",
+              fonction: values.fonction || current.fonction || "",
             };
             localStorage.setItem("profile", JSON.stringify(nextProfile));
           }
