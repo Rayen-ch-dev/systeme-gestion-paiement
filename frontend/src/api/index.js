@@ -152,6 +152,41 @@ export async function updateProfile(data) {
     return { ok: false, error: "Network or server error" };
   }
 }
+//add comptable role in register function
+export async function registerComptable({ name, lastname, cin, email, password, role, banque, rib }) {
+  // Vérification des champs de base
+  if (!name || !lastname || !cin || !email || !password || !role) {
+    return { ok: false, error: "Champs requis manquants" };
+  }
+  // Règles spécifiques selon le rôle
+  if (role === "comptable") {
+    if (!banque || !rib) {
+      return { ok: false, error: "Banque et RIB sont obligatoires pour les comptables" };
+    }
+  }
+
+  // Les autres rôles (ex: super_admin) n’ont pas besoin de banque/rib/spécialité/fonction
+  try {
+    const res = await fetch("http://localhost:5000/api/comptable/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, lastname, cin, email, password, role, banque, rib }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: data?.message || `HTTP ${res.status}` };
+    }
+    // Sauvegarde locale du profil
+    const existing = localStorage.getItem("profile");
+    const current = existing ? JSON.parse(existing) : {};
+    const next = { ...current, email, name, lastname };
+    localStorage.setItem("profile", JSON.stringify(next));
+    return { ok: true, user: data?.user };
+  } catch (error) {
+    console.error("Erreur de connexion :", error);
+    return { ok: false, error: "Impossible de se connecter au serveur" };
+  }
+}
 
 
 

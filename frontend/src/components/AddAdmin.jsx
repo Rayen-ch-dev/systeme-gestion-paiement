@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-export default function AddAdmin(){
-    const [formData, setFormData] = useState({
+
+export default function AddAdmin() {
+  const [formData, setFormData] = useState({
     name: "",
     lastName: "",
     email: "",
@@ -10,23 +11,25 @@ export default function AddAdmin(){
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     const { name, lastName, email, cin, password } = formData;
+
+    // 🔎 Validation de base
     if (!name || !lastName || !email || !cin || !password) {
       setError("Veuillez remplir tous les champs.");
       setMessage("");
       return;
     }
 
-    if (!email.includes("@")) {
+    if (!email.includes("@") || !email.includes(".")) {
       setError("Veuillez entrer un email valide.");
       setMessage("");
       return;
@@ -39,26 +42,42 @@ export default function AddAdmin(){
     }
 
     setError("");
-    setMessage(`Compte créé avec succès pour ${name} ${lastName}.`);
+    setLoading(true);
 
-    //  backend API
-    console.log("New Responsable de paie:", formData);
+    try {
+      // 🌐 Envoi au backend
+      const res = await fetch("http://localhost:5000/api/comptable/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          lastname: lastName,
+          email,
+          cin,
+          password,
+          role: "comptable",
+        }),
+      });
 
-    //Reset form after creation
-    setFormData({
-      name: "",
-      lastName: "",
-      email: "",
-      cin: "",
-      password: "",
-    });
+      const data = await res.json();
+      console.log(data);
+
+      if (!res.ok) {
+        throw new Error(data.message || "Erreur lors de la création du compte.");
+      }
+
+      setMessage(`✅ Compte créé avec succès pour ${name} ${lastName}.`);
+      setFormData({ name: "", lastName: "", email: "", cin: "", password: "" });
+    } catch (err) {
+      setError( "verifier vos informations");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 px-4">
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-2xl">
-       
-
         <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
           Créer un compte Responsable de paie
         </h2>
@@ -133,28 +152,25 @@ export default function AddAdmin(){
               onChange={handleChange}
               placeholder="Mot de passe"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
-        
-            href=""/>
+            />
           </div>
 
           <div className="md:col-span-2 flex justify-around mt-4 gap-3">
-  <a
-    href="/SuperAdminDashboard"
-    type="button"
-    className="w-1/2 text-center bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg hover:bg-gray-400 transition-colors"
-  >
-    Cancel
-  </a>
+            <a
+              href="/SuperAdminDashboard"
+              className="w-1/2 text-center bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg hover:bg-gray-400 transition-colors"
+            >
+              Annuler
+            </a>
 
-  <button
-    type="submit"
-    className="w-1/2 bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors"
-  >
-    Créer le compte
-  </button>
-</div>
-
-          
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-1/2 bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {loading ? "Création..." : "Créer le compte"}
+            </button>
+          </div>
         </form>
       </div>
     </div>

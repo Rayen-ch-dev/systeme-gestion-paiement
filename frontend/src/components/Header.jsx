@@ -47,6 +47,8 @@ export default function Header() {
         </div>
       </div>
       <div className="h-0.5 w-full bg-gradient-to-r from-brand-600/40 via-brand-500/40 to-brand-700/40" />
+      {/* bouton de deconnection */}
+      
     </header>
   );
 }
