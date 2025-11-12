@@ -1,7 +1,7 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, use } from "react";
 import { emailRegex } from "../utils/data";
 import { getProfile  } from "../api";
-
+import {jwtDecode} from "jwt-decode";
 export default function ProfilePage() {
   const roleFromStorage = typeof window !== "undefined" ? (localStorage.getItem("role") || "Formateur") : "Formateur";
   const [form, setForm] = useState({
@@ -13,6 +13,7 @@ export default function ProfilePage() {
     specialite: "",
     fonction: "",
   });
+  const [userId, setUserId] = useState(null);
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -39,10 +40,22 @@ export default function ProfilePage() {
   useEffect(() => {
     setErrors(validate(form));
   }, [form, validate]);
+  useEffect(() => {
+  if (!userId) return; // ne rien faire tant que userId n’est pas défini
+
+  const loadProfile = async () => {
+    const res = await fetchUserProfile(userId);
+    if (res.ok) setForm(res.user); // ou setProfile(res.user)
+    else console.error("Erreur de chargement du profil :", res.error);
+  };
+
+  loadProfile();
+}, [userId]);
+
 
 useEffect(() => {
   (async () => {
-    const p = await getProfile("69134aae7a7a24bda6c59a63");
+    const p = await getProfile(userId);
 
     if (p.ok && p.user) {
       setForm((s) => ({
@@ -82,6 +95,7 @@ useEffect(() => {
     }
     setTimeout(() => setSaved(false), 2000);
   };
+
 
   return (
     <div className="relative min-h-[calc(100vh-56px)] flex items-center justify-center p-6 bg-slate-50 overflow-hidden">

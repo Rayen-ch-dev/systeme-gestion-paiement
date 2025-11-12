@@ -9,6 +9,9 @@ export default function LoginPage() {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(false);
 
+
+
+
   // Front API login (replaces previous mock)
   const apiLogin = (payload) => auth.login(payload);
 

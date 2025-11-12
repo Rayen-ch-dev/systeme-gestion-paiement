@@ -1,9 +1,11 @@
 import React, { useMemo, useState, useEffect } from "react";
 import ProfilePage from "./ProfilePage";
+import {jwtDecode} from "jwt-decode";
 
 export default function Dashboard() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/dashboard";
   const roleSlug = path.split("/")[2] || "formateur";
+  const [userId, setUserId] = useState(null);
 
   const role = useMemo(() => {
     const map = {
@@ -16,6 +18,7 @@ export default function Dashboard() {
   }, [roleSlug]);
 
   const isFormateur = role === "Formateur";
+
   const isCoordinateur = role === "Coordinateur";
   const [expanded, setExpanded] = useState(false);
   const [pwdVisible, setPwdVisible] = useState(false);
@@ -49,12 +52,53 @@ export default function Dashboard() {
     };
   }, []);
 
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.body.style.overflow = profileOpen ? "hidden" : "";
+useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const decoded = jwtDecode(token);
+          console.log("Token décodé :", decoded);
+          setUserId(decoded.id); // ici on récupère l'id
+        } catch (err) {
+          console.error("Token invalide :", err);
+        }
+      }
     }
-    return () => { if (typeof document !== "undefined") document.body.style.overflow = ""; };
-  }, [profileOpen]);
+  }, []);
+  
+const fetchUserProfile = async (userId) => {
+  if (!userId) {
+    return { ok: false, error: "ID utilisateur manquant" };
+  }
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/users/getUserById/${userId}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      return { ok: false, error: data?.message || `HTTP ${res.status}` };
+    }
+
+    return { ok: true, user: data?.user };
+  } catch (error) {
+    console.error("Erreur lors de la récupération du profil :", error);
+    return { ok: false, error: "Impossible de contacter le serveur" };
+  }
+}
+useEffect(() => {
+  if (userId) {
+    fetchUserProfile(userId).then(res => {
+      if (res.ok) setProfile(res.user);
+    });
+  }
+}, [userId]);
+
+
 
   return (
     <div className="relative min-h-[calc(100vh-56px)] p-6 bg-slate-50 overflow-hidden">
@@ -115,10 +159,7 @@ export default function Dashboard() {
                       <span className="text-slate-500 w-28 shrink-0">CIN</span>
                       <span className="font-medium text-slate-800">{profile.cin||'—'}</span>
                     </div>
-                    <div className="flex items-start py-2">
-                      <span className="text-slate-500 w-28 shrink-0">Mot de passe</span>
-                      <span className="font-medium text-slate-800">••••••••</span>
-                    </div>
+                   
                   </div>
                 </section>
                 {(isFormateur || isCoordinateur) ? (
