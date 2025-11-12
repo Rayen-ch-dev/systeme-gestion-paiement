@@ -1,9 +1,13 @@
 import React, { useMemo, useState, useEffect, use } from "react";
 import { emailRegex } from "../utils/data";
-import { getProfile  } from "../api";
+import { getProfile, updateProfile } from "../api";
 import {jwtDecode} from "jwt-decode";
 export default function ProfilePage() {
-  const roleFromStorage = typeof window !== "undefined" ? (localStorage.getItem("role") || "Formateur") : "Formateur";
+  const roleFromStorage =
+    typeof window !== "undefined"
+      ? localStorage.getItem("role") || "Formateur"
+      : "Formateur";
+
   const [form, setForm] = useState({
     name: "",
     lastname: "",
@@ -19,82 +23,112 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
-  const [activeTab, setActiveTab] = useState("profil"); // profil | securite | metier
-  const initials = `${(form.name || 'U').slice(0,1)}${(form.lastname || '').slice(0,1)}`.toUpperCase();
+  const [activeTab, setActiveTab] = useState("profil");
+
+  const initials = `${(form.name || "U").slice(0, 1)}${(form.lastname || "").slice(0, 1)}`.toUpperCase();
 
   const onChange = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.value }));
   const onBlur = (k) => () => setTouched((t) => ({ ...t, [k]: true }));
 
-  const validate = useMemo(() => (data) => {
-    const e = {};
-    if (!data.name.trim()) e.name = "Prénom requis";
-    if (!data.lastname.trim()) e.lastname = "Nom requis";
-    if (!data.cin.trim() || !/^[A-Z0-9]{5,15}$/i.test(data.cin)) e.cin = "CIN invalide";
-    if (!emailRegex.test(data.email)) e.email = "Email invalide";
-    if (!data.password || data.password.length < 6) e.password = "Mot de passe min. 6 caractères";
-    if (roleFromStorage === "Formateur" && !data.specialite.trim()) e.specialite = "Spécialité requise";
-    if (roleFromStorage === "Coordinateur" && !data.fonction.trim()) e.fonction = "Fonction requise";
-    return e;
-  }, [roleFromStorage]);
+  const validate = useMemo(
+    () => (data) => {
+      const e = {};
+      if (!data.name.trim()) e.name = "Prénom requis";
+      if (!data.lastname.trim()) e.lastname = "Nom requis";
+      if (!data.cin.trim() || !/^[A-Z0-9]{5,15}$/i.test(data.cin)) e.cin = "CIN invalide";
+      if (!emailRegex.test(data.email)) e.email = "Email invalide";
+      if (!data.password || data.password.length < 6)
+        e.password = "Mot de passe min. 6 caractères";
+      if (roleFromStorage === "Formateur" && !data.specialite.trim())
+        e.specialite = "Spécialité requise";
+      if (roleFromStorage === "Coordinateur" && !data.fonction.trim())
+        e.fonction = "Fonction requise";
+      return e;
+    },
+    [roleFromStorage]
+  );
 
   useEffect(() => {
     setErrors(validate(form));
   }, [form, validate]);
+
+  // ✅ décoder le token une fois et définir userId
   useEffect(() => {
-  if (!userId) return; // ne rien faire tant que userId n’est pas défini
-
-  const loadProfile = async () => {
-    const res = await fetchUserProfile(userId);
-    if (res.ok) setForm(res.user); // ou setProfile(res.user)
-    else console.error("Erreur de chargement du profil :", res.error);
-  };
-
-  loadProfile();
-}, [userId]);
-
-
-useEffect(() => {
-  (async () => {
-    const p = await getProfile(userId);
-
-    if (p.ok && p.user) {
-      setForm((s) => ({
-        ...s,
-        name: p.user.name || "",
-        lastname: p.user.lastname || "",
-        cin: p.user.cin || "",
-        email: p.user.email || "",
-        password: p.user.password || "",
-        specialite: p.user.specialite || "",
-        fonction: p.user.fonction || "",
-        banque: p.user.banque || "",
-        rib: p.user.rib || "",
-      }));
-    } else {
-      console.error("Erreur de chargement du profil :", p.error);
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const decoded = jwtDecode(token);
+      console.log("Token décodé :", decoded);
+      setUserId(decoded.id);
+    } catch (err) {
+      console.error("Token invalide :", err);
     }
-  })();
-}, []);
+  }, []);
 
+  // ✅ charger le profil seulement quand userId est prêt
+  useEffect(() => {
+    if (!userId) return; // éviter l'appel avant que l'id soit dispo
+    (async () => {
+      const p = await getProfile(userId);
+      if (p.ok && p.user) {
+        setForm((s) => ({
+          ...s,
+          name: p.user.name || "",
+          lastname: p.user.lastname || "",
+          cin: p.user.cin || "",
+          email: p.user.email || "",
+          password: p.user.password || "",
+          specialite: p.user.specialite || "",
+          fonction: p.user.fonction || "",
+          banque: p.user.banque || "",
+          rib: p.user.rib || "",
+        }));
+      } else {
+        console.error("Erreur de chargement du profil :", p.error);
+      }
+    })();
+  }, [userId]); // 👈 dépend de userId maintenant
 
   const canSave = Object.keys(errors).length === 0;
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    const eMap = validate(form);
-    setErrors(eMap);
-    setTouched({ ame: true, lastname: true, cin: true, email: true, password: true, specialite: true, fonction: true });
-    if (Object.keys(eMap).length > 0) return;
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSaving(false);
-    setSaved(true);
-    const result = await profileApi.updateProfile({ ...form });
-    if (!result.ok) {
-      // keep UI unchanged; optionally we could surface an error later
+ const onSubmit = async (e) => {
+  e.preventDefault();
+
+  // Validation des champs
+  const eMap = validate(form);
+  setErrors(eMap);
+  setTouched({
+    name: true,
+    lastname: true,
+    cin: true,
+    email: true,
+    password: true,
+    specialite: true,
+    fonction: true,
+  });
+
+  // Si erreurs, on arrête
+  if (Object.keys(eMap).length > 0) return;
+
+  setSaving(true);
+
+  try {
+    const result = await updateProfile({ ...form, id: userId });
+
+    if (result.ok) {
+      setSaved(true);
+      console.log("Profil mis à jour avec succès :", result.profile);
+    } else {
+      console.error("Erreur lors de la mise à jour :", result.error);
     }
+  } catch (err) {
+    console.error("Erreur inattendue :", err);
+  } finally {
+    setSaving(false);
     setTimeout(() => setSaved(false), 2000);
-  };
+  }
+};
 
 
   return (
@@ -212,7 +246,7 @@ useEffect(() => {
 
               <div className="mt-6 border-t border-white/60 pt-5">
                 <div className="flex items-center gap-3 justify-end">
-                  <a href="/" className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white/80 hover:bg-white px-4 py-2 text-sm text-slate-700">Annuler</a>
+                  <a href="/dashboard" className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white/80 hover:bg-white px-4 py-2 text-sm text-slate-700">Annuler</a>
                   <button type="submit" disabled={!canSave || saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium shadow-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400">
                     {saving ? (
                       <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>

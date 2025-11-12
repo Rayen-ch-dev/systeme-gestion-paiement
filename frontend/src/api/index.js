@@ -118,22 +118,43 @@ export async function getProfile(userId) {
     return { ok: false, error: "Impossible de contacter le serveur" };
   }
 }
+// api.js
 
 
+export async function updateProfile(data) {
+  if (!data || !data.id) return { ok: false, error: "Invalid payload or missing user ID" };
 
+  const token = localStorage.getItem("token");
+  if (!token) return { ok: false, error: "Missing authentication token" };
 
- /* async updateProfile(data) {
-    // Validate on front only (pages already validate fields; this is a safety net)
-    if (!data) return { ok: false, error: "Invalid payload" };
-    await new Promise((r) => setTimeout(r, 250));
-    try {
-      const existing = localStorage.getItem("profile");
-      const current = existing ? JSON.parse(existing) : {};
-      const next = { ...current, ...data };
-      localStorage.setItem("profile", JSON.stringify(next));
-      return { ok: true, profile: next };
-    } catch (e) {
-      return { ok: false, error: "Storage error" };
+  try {
+    const res = await fetch(`http://localhost:5000/api/users/updateUser/${data.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      return { ok: false, error: result.message || "Update failed" };
     }
-  },*/
+
+    // Optionnel : stocker le profil mis à jour localement
+    localStorage.setItem("profile", JSON.stringify(result.user || result));
+
+    return { ok: true, profile: result.user || result };
+  } catch (e) {
+    console.error("Erreur dans updateProfile :", e);
+    return { ok: false, error: "Network or server error" };
+  }
+}
+
+
+
+
+
 

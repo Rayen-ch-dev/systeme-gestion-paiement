@@ -4,21 +4,58 @@ import bcrypt from "bcryptjs";
 
 export const createUser = async (req, res) => {
   try {
-    const { name, lastname, cin, email, password, role, banque, rib } = req.body;
+    const { name, lastname, cin, email, password, role, banque, rib, specialite, fonction } = req.body;
 
-    if (!name || !lastname || !cin || !email || !password || !rib || !banque || !role) {
-      return res.status(400).json({ message: "All fields are required" });
+    // Champs de base obligatoires
+    if (!name || !lastname || !cin || !email || !password || !role) {
+      return res.status(400).json({ message: "Champs requis manquants" });
     }
 
-    const newUser = new User({ name, lastname, cin, email, password, role, banque, rib });
+    // Champs spécifiques selon le rôle
+    if (role === "formateur") {
+      if (!specialite) {
+        return res.status(400).json({ message: "Le champ spécialité est obligatoire pour les formateurs" });
+      }
+      if (!banque || !rib) {
+        return res.status(400).json({ message: "Banque et RIB sont obligatoires pour les formateurs" });
+      }
+    }
+
+    if (role === "coordinateur") {
+      if (!fonction) {
+        return res.status(400).json({ message: "Le champ fonction est obligatoire pour les coordinateurs" });
+      }
+      if (!banque || !rib) {
+        return res.status(400).json({ message: "Banque et RIB sont obligatoires pour les coordinateurs" });
+      }
+    }
+
+    // Le super_admin n’a pas besoin de banque/rib/spécialité/fonction
+    const newUser = new User({
+      name,
+      lastname,
+      cin,
+      email,
+      password,
+      role,
+      banque,
+      rib,
+      specialite,
+      fonction
+    });
+
     await newUser.save();
 
-    res.status(201).json({ message: " User created", user: newUser });
+    res.status(201).json({ message: "Utilisateur créé avec succès", user: newUser });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: " Error creating user", error: error.message });
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Email ou RIB déjà utilisé" });
+    }
+    res.status(500).json({ message: "Erreur lors de la création de l'utilisateur", error: error.message });
   }
 };
+
 
 export const loginUser = async (req, res) => {
   try {
@@ -49,6 +86,7 @@ export const loginUser = async (req, res) => {
       { expiresIn: "1d" }
     );
 
+
     res.status(200).json({
       message: "Connexion réussie",
       token,
@@ -62,6 +100,9 @@ export const loginUser = async (req, res) => {
         rib:user.rib,
         banque:user.banque,
         role: user.role,
+        specialite: user.specialite,
+        fonction: user.fonction,
+        status: user.status,
       },
     });
   } catch (error) {
