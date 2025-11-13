@@ -1,12 +1,20 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token")?.trim();
+  const id = searchParams.get("id");
+  const type = searchParams.get("type");
+  console.log("Params:", { token, id, type });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // 🧠 Basic validation
@@ -26,16 +34,39 @@ export default function ResetPasswordPage() {
     }
 
     setError("");
-    setMessage("Votre mot de passe a été réinitialisé avec succès !");
+    setLoading(true);
 
-    // 🕒 Redirect to login after short delay
-    setTimeout(() => {
-      window.location.href ="/login";
-    }, 1000);
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/password/resetPassword/${type}/${id}/${token}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password, confirmPassword }),
+        },
+      );
+      console.log(res)
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage(data.message || "Votre mot de passe a été réinitialisé avec succès !");
+        // Redirect to login after short delay
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1500);
+      } else {
+        setError("Erreur lors de la réinitialisation du mot de passe.");
+      }
+    } catch (err) {
+      setError("Impossible de contacter le serveur.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
-    window.location.href ="/login";
+    window.location.href = "/login";
   };
 
   return (
@@ -49,16 +80,11 @@ export default function ResetPasswordPage() {
             Entrez un nouveau mot de passe sécurisé.
           </p>
 
-          {/* 🟢 Messages */}
           {error && (
-            <p className="bg-red-100 text-red-700 px-4 py-2 rounded-lg mb-4 text-center">
-              {error}
-            </p>
+            <p className="bg-red-100 text-red-700 px-4 py-2 rounded-lg mb-4 text-center">{error}</p>
           )}
           {message && (
-            <p className="bg-green-100 text-green-700 px-4 py-2 rounded-lg mb-4 text-center">
-              {message}
-            </p>
+            <p className="bg-green-100 text-green-700 px-4 py-2 rounded-lg mb-4 text-center">{message}</p>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -97,9 +123,10 @@ export default function ResetPasswordPage() {
 
               <button
                 type="submit"
-                className="w-1/2 bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
+                disabled={loading}
+                className="w-1/2 bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
               >
-                Confirmer
+                {loading ? "Envoi..." : "Confirmer"}
               </button>
             </div>
           </form>

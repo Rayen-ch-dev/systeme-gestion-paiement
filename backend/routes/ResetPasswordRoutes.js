@@ -3,7 +3,7 @@ import {SendForgotPasswordLink,ResetPassword} from "../controllers/RestPasswordC
 
 const ResetPasswordRoutes = express.Router();
 ResetPasswordRoutes.post("/getForgotPasswordLink",SendForgotPasswordLink);
-ResetPasswordRoutes.post("/resetPassword/:type/:id/:token",ResetPassword);
+ResetPasswordRoutes.post("/:type/:id/:token",ResetPassword);
 
 
 export default ResetPasswordRoutes;
