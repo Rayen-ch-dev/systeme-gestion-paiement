@@ -292,6 +292,33 @@ export async function getAllUsers() {
     return { ok: false, error: "Impossible de contacter le serveur" };
   }
 }
+//send forgot password link
+export async function sendResetPasswordLink(email) {
+  if (!email) {
+    return { ok: false, error: "Email is required" };
+  }
+
+  try {
+    const res = await fetch("http://localhost:5000/api/password/resetPassword/getForgotPasswordLink", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      return { ok: false, error: data?.message || `HTTP ${res.status}` };
+    }
+
+    return { ok: true, message: data?.message || "Reset link sent" };
+  } catch (error) {
+    console.error("Erreur lors de l'envoi du lien de réinitialisation :", error);
+    return { ok: false, error: "Impossible de contacter le serveur" };
+  }
+}
+
+
 //login as a super admin
 const API_URL = "http://localhost:5000/api/superAdmin";
 

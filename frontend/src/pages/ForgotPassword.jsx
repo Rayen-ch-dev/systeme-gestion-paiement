@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { sendResetPasswordLink } from "../api/index.js";
 // using direct navigation instead of react-router navigate for a simple redirect
 
 export default function ForgotPassword() {
@@ -6,20 +7,27 @@ export default function ForgotPassword() {
   const [message, setMessage] = useState(""); // 🟢 for success message
   const [error, setError] = useState(""); // 🟡 optional for errors
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!email) {
-      setError("Veuillez entrer une adresse email valide.");
-      return;
-    }
+  if (!email) {
+    setError("Veuillez entrer une adresse email valide.");
+    return;
+  }
 
-    console.log("Reset link sent to:", email);
+  setMessage("");
+  setError("");
 
-    // 🟢 Show success message
-    setMessage(`Un lien de vérification a été envoyé à ${email}.`);
-    setError("");
-  };
+  // 👇 Call your API
+  const result = await sendResetPasswordLink(email);
+
+  if (result.ok) {
+    setMessage(result.message); // show success
+  } else {
+    setError(result.error); // show error message
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex flex-col">
@@ -30,7 +38,7 @@ export default function ForgotPassword() {
             Réinitialiser le mot de passe
           </h2>
           <p className="text-gray-500 text-center mb-6">
-            Entrez votre adresse email pour recevoir le code de réinitialisation.
+            Entrez votre adresse email pour recevoir le lien de réinitialisation.
           </p>
 
           {/* 🟢 Success or error message */}
@@ -62,7 +70,7 @@ export default function ForgotPassword() {
               type="submit"
               className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
             >
-              Envoyer le code de réinitialisation
+              Envoyer le lien de réinitialisation
             </button>
           </form>
 

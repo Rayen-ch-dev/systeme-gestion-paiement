@@ -27,10 +27,11 @@ export const SendForgotPasswordLink = async (req, res) => {
     const token = jwt.sign({ email: account.email, id: account._id, type: accountType }, secret, {
       expiresIn: "10m",
     });
+    console.log("Verifying token:", token);
 
-    const link = `http://localhost:5173/reset-password/${accountType}/${account._id}/${token}`;
+const link = `http://localhost:5173/reset-password?type=${accountType}&id=${account._id}&token=${token}`;
 
-    const transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
@@ -53,8 +54,8 @@ const mailOptions = {
           <p>Nous avons reçu une demande de réinitialisation de votre mot de passe.  
           Si vous êtes à l’origine de cette demande, veuillez cliquer sur le bouton ci-dessous pour créer un nouveau mot de passe.</p>
 
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${link}" 
+          <div style="text-align: center; margin: 30px 0;">  
+          <a href="${link}" 
               style="background-color: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-weight: bold;"
               target="_blank">
               Réinitialiser mon mot de passe
@@ -107,7 +108,7 @@ export const ResetPassword = async (req, res) => {
     }
 
     const secret = process.env.JWT_SECRET + account.password;
-    jwt.verify(token, secret);
+    jwt.verify(token.trim(), secret);
 
     const hashedPassword = await bcrypt.hash(password, 10);
     await Model.findByIdAndUpdate(id, { password: hashedPassword }, { new: true });
