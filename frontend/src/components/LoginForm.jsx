@@ -64,21 +64,44 @@ export default function LoginForm({ onSubmit, loading }) {
         <a className="text-sm text-brand-600 hover:text-brand-700 hover:underline" href="/ForgotPassword">Mot de passe oublié ?</a>
       </div>
 
-      <div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full inline-flex justify-center items-center gap-2 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium shadow-sm hover:shadow-md active:translate-y-px transition-all disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400"
-        >
-          {loading ? (
-            <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-            </svg>
-          ) : null}
-          Se connecter
-        </button>
-      </div>
+<div className="flex flex-col gap-3 mt-4">
+  <button
+    type="submit"
+    disabled={loading}
+    className="w-full flex justify-center items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 text-sm font-semibold shadow-md hover:shadow-lg active:translate-y-[1px] transition-all duration-200 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+  >
+    {loading && (
+      <svg
+        className="animate-spin h-4 w-4 text-white"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="none"
+        />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v8z"
+        />
+      </svg>
+    )}
+    {loading ? "Connexion en cours..." : "Se connecter"}
+  </button>
+
+  <a
+    href="/LoginComptable"
+    className="w-full flex justify-center items-center gap-2 rounded-lg border border-brand-600 text-brand-600 hover:bg-brand-600 hover:text-white px-5 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md active:translate-y-[1px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+  >
+    Login as Comptable
+  </a>
+</div>
+
     </form>
   );
 }
