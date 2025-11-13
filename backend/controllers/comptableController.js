@@ -1,4 +1,5 @@
 import { Comptable } from "../models/Comptable.js";
+import { User } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -141,3 +142,28 @@ export const deleteComptable = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 }; 
+
+// Validate user (accept/reject)
+export const validateUser = async (req, res) => {
+  try {
+    // Vérifie que le body est reçu
+    console.log("REQ.BODY:", req.body);
+
+    const { status } = req.body; // accepted ou rejected
+    if (!['approuvé', 'non-approuvé'].includes(status)) {
+      return res.status(400).json({ message: 'Status invalide' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+    res.json({ message: `Utilisateur ${status}`, user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
