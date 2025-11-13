@@ -46,6 +46,7 @@ export default function Header() {
             </div>
           )}
         </div>
+        
         <div className="flex items-center gap-4 text-sm">
           <a href="#help" className="text-slate-600 hover:text-slate-900">Aide</a>
           <button className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900">

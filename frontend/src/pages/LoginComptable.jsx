@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import LoginForm from "../components/LoginForm";
+import LoginFormComptable from "../components/LoginFormComptable";
 import StatusAlert from "../components/StatusAlert";
 import { auth } from "../api";
 
-export default function LoginPage() {
+export default function LoginComptable() {
   const [status, setStatus] = useState(null); // null | 'pending' | 'rejected' | 'active'
   const [adminContact, setAdminContact] = useState(null);
   const [role, setRole] = useState(null);
@@ -82,7 +82,7 @@ export default function LoginPage() {
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3zM5.5 20a6.5 6.5 0 0113 0"/></svg>
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">Se connecter</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Se connecter as comptable</h1>
               <p className="text-sm text-slate-600">Accédez à votre espace sécurisé de formation en ligne</p>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function LoginPage() {
 
           <StatusAlert status={status} adminContact={adminContact} role={role} />
 
-          <LoginForm onSubmit={handleSubmit} loading={loading} />
+          <LoginFormComptable onSubmit={handleSubmit} loading={loading} />
           <div className="mt-3 text-xs text-center text-slate-500">
             Nouveau sur la plateforme ? <a href="/register" className="text-brand-600 hover:text-brand-700 font-medium">Créer un compte</a>
           </div>
