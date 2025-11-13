@@ -1,15 +1,18 @@
 import React, { useState } from "react";
-
+import { getProfileComptable, updateProfile } from "../api";
+import {jwtDecode} from "jwt-decode";
+import { useEffect } from "react";
 export default function AdminProfileInfo() {
-  const [formData, setFormData] = useState({
-    name: "Mohamed",
-    lastName: "Ben Ali",
-    cin: "12345678",
-    email: "admin@example.com",
-    password: "********",
-  });
-
+  const [formData, setFormData] = useState({});
+  const [userId, setUserId] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [form, setForm] = useState({
+      name: "",
+      lastname: "",
+      cin: "",
+      email: "",
+      password: "",
+    });
 
   const handleChange = (e) => {
     setFormData({
@@ -24,6 +27,37 @@ export default function AdminProfileInfo() {
     setTimeout(() => {setSuccessMessage(""),window.location.href="AdminDashboard"}, 600);
     
   };
+    useEffect(() => {
+      if (typeof window === "undefined") return;
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      try {
+        const decoded = jwtDecode(token);
+        console.log("Token décodé :", decoded);
+        setUserId(decoded.id);
+      } catch (err) {
+        console.error("Token invalide :", err);
+      }
+    }, []);
+   useEffect(() => {
+      if (!userId) return; // éviter l'appel avant que l'id soit dispo
+      (async () => {
+        const p = await getProfileComptable(userId);
+        if (p.ok && p.user) {
+          setForm((s) => ({
+            ...s,
+            name: p.user.name || "",
+            lastname: p.user.lastname || "",
+            cin: p.user.cin || "",
+            email: p.user.email || "",
+            password: p.user.password || "",
+          }));
+        } else {
+          console.error("Erreur de chargement du profil :", p.error);
+        }
+      })();
+    }, [userId]); // 👈 dépend de userId maintenant
+  
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">

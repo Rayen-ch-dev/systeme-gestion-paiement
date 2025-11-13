@@ -185,3 +185,25 @@ export const getUser=async(req,res)=>{
     
   }
 }
+//get all users
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+
+    // Exclude super_admin users if needed
+    const filteredUsers = users.filter(user => user.role !== "super_admin");
+
+    if (filteredUsers.length === 0) {
+      return res.status(404).json({ message: "No users found" });
+    }
+
+    res.status(200).json({ users: filteredUsers });
+  } catch (error) {
+    res.status(500).json({ 
+      message: "Erreur serveur", 
+      error: error.message  
+    });
+  }
+};
+
+

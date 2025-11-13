@@ -39,7 +39,7 @@ export const loginComptable = async (req, res) => {
 
     // Generate JWT
     const token = jwt.sign(
-      { id: user._id, role: "comptable" },
+      { id: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -53,7 +53,6 @@ export const loginComptable = async (req, res) => {
         lastname: user.lastname,
         cin: user.cin,
         email: user.email,
-        role: "comptable",
       },
     });
   } catch (error) {
@@ -75,13 +74,31 @@ export const getAllComptables = async (req, res) => {
 export const getComptableById = async (req, res) => {
   try {
     const { id } = req.params;
-    const found = await Comptable.findById(id);
-    if (!found) return res.status(404).json({ message: "Comptable not found" });
-    res.status(200).json(found);
+
+    if (!id) {
+      return res.status(400).json({ ok: false, message: "ID is required" });
+    }
+
+    const comptable = await Comptable.findById(id);
+
+    if (!comptable) {
+      return res.status(404).json({ ok: false, message: "Comptable not found" });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      user: comptable, // important: on envoie dans une clé 'user'
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("❌ Erreur getComptableById:", error.message);
+    return res.status(500).json({
+      ok: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
+
 
 // UPDATE comptable
 export const updateComptable = async (req, res) => {

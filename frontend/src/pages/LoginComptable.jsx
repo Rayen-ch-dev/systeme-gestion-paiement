@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import LoginFormComptable from "../components/LoginFormComptable";
 import StatusAlert from "../components/StatusAlert";
-import { auth } from "../api";
+import { loginComptable } from "../api";
 
 export default function LoginComptable() {
   const [status, setStatus] = useState(null); // null | 'pending' | 'rejected' | 'active'
@@ -13,33 +13,18 @@ export default function LoginComptable() {
 
 
   // Front API login (replaces previous mock)
-  const apiLogin = (payload) => auth.login(payload);
+  const apiLogin = (payload) => loginComptable(payload);
   const handleSubmit = async (values) => {
     setLoading(true);
     setStatus(null);
     setAdminContact(null);
-    setRole(null);
+    
 
     try {
       const res = await apiLogin(values);
-      if(res.role==="super_admin"){
-        window.location.href = `/SuperAdminDashboard`;
-        return;
- 
-      }
-      if (res.status === "pending") {
-        setStatus("pending");
-      } else if (res.status === "rejected") {
-        setStatus("rejected");
-        setAdminContact(null);
-      } else if (res.status === "active") {
-        setStatus("active");
-        setRole(res.role);
-        // simulate redirection to role-specific dashboard
-        // replace with actual routing when backend is ready
+      
         try {
-          if (typeof window !== "undefined") {
-            localStorage.setItem("role", res.role);
+          if (typeof window !== "undefined") {       
             // persist a minimal profile for header/slide-over usage
             const existing = localStorage.getItem("profile");
             const current = existing ? JSON.parse(existing) : {};
@@ -50,21 +35,20 @@ export default function LoginComptable() {
               lastname: values.lastname || current.lastname || "",
               cin: values.cin || current.cin || "",
               password: values.password || current.password || "",
-              specialite: values.specialite || current.specialite || "",
-              fonction: values.fonction || current.fonction || "",
+  
             };
             localStorage.setItem("profile", JSON.stringify(nextProfile));
           }
         } catch { "error"}
         setTimeout(() => {
           // example redirect path
-          const path = `/dashboard/${res.role.replace(/\s+/g, "-").toLowerCase()}`;
+          const path = `/AdminDashboard`;
           window.location.href = path;
         }, 800);
-      }
+      
     } catch (err) {
       console.error(err);
-      setStatus("rejected");
+     
       setAdminContact(null);
     } finally {
       setLoading(false);

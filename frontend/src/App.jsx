@@ -12,6 +12,7 @@ import AddAdmin from "./components/AddAdmin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProfileInfo from "./components/AdminProfileInfo";
 import LoginComptable from "./pages/LoginComptable";
+import ProfileComptable from "./pages/ProfileComptable";
 export default function App() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
   let Page;
@@ -42,6 +43,9 @@ export default function App() {
   }
   else if (path==="/LoginComptable") {
     Page=LoginComptable;
+  }
+  else if(path==="/ProfileComptable"){
+    Page=ProfileComptable;
   }
   
   else {
