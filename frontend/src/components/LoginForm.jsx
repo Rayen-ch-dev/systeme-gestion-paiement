@@ -94,12 +94,6 @@ export default function LoginForm({ onSubmit, loading }) {
     {loading ? "Connexion en cours..." : "Se connecter"}
   </button>
 
-  <a
-    href="/LoginComptable"
-    className="w-full flex justify-center items-center gap-2 rounded-lg border border-brand-600 text-brand-600 hover:bg-brand-600 hover:text-white px-5 py-2.5 text-sm font-semibold shadow-sm hover:shadow-md active:translate-y-[1px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-  >
-    Login as Comptable
-  </a>
 </div>
 
     </form>
