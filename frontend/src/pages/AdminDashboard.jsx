@@ -1,6 +1,7 @@
 import React, { useState,useEffect  } from "react";
 import { getAllUsers } from "../api";
 export default function AdminDashboard() {
+
   const [pendingUsers, setPendingUsers] = useState([]);
 
   const [notification, setNotification] = useState(null);

@@ -30,7 +30,10 @@ export const auth = {
       const current = existing ? JSON.parse(existing) : {};
       const nextProfile = { ...current, email: user.email || email, name: user.name, lastname: user.lastname };
       localStorage.setItem("profile", JSON.stringify(nextProfile));
-    } catch {}
+    } catch (err) {
+    console.error("Login failed:", err);
+    return { status: "rejected", error: "Network or server error" };
+  }
 
     return { status: "active", role, token, user };
   },
@@ -90,7 +93,7 @@ export const auth = {
 
   async logout() {
     await new Promise((r) => setTimeout(r, 100));
-    try { localStorage.clear(); } catch {}
+    try { localStorage.clear(); } catch(err) {console.error("Failed to clear auth data:", err);}
     return { ok: true };
   },
 };
@@ -216,7 +219,7 @@ export async function registerComptable({ name, lastname, cin, email, password, 
       const current = existing ? JSON.parse(existing) : {};
       const nextProfile = { ...current, email: user.email || email, name: user.name, lastname: user.lastname };
       localStorage.setItem("profile", JSON.stringify(nextProfile));
-    } catch {}
+    } catch(err) {console.error("faild login comptable", err);}
 
     return { status: "active", token, user };
   }
@@ -285,4 +288,30 @@ export async function getAllUsers() {
     return { ok: false, error: "Impossible de contacter le serveur" };
   }
 }
+//login as a super admin
+const API_URL = "http://localhost:5000/api/superAdmin";
+
+export const loginSuperAdmin = async ({ email, password }) => {
+  try {
+    const response = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // Parse the JSON response
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Login failed:", error);
+    throw error;
+  }
+};
+
 

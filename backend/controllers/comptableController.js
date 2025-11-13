@@ -90,7 +90,7 @@ export const getComptableById = async (req, res) => {
       user: comptable, // important: on envoie dans une clé 'user'
     });
   } catch (error) {
-    console.error("❌ Erreur getComptableById:", error.message);
+    console.error(" Erreur getComptableById:", error.message);
     return res.status(500).json({
       ok: false,
       message: "Server error",

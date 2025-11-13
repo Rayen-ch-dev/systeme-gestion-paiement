@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
 import ProfilePage from "./ProfilePage";
 import {jwtDecode} from "jwt-decode";
-
 export default function Dashboard() {
+
+
   const path = typeof window !== "undefined" ? window.location.pathname : "/dashboard";
   const roleSlug = path.split("/")[2] || "formateur";
   const [userId, setUserId] = useState(null);

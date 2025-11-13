@@ -5,6 +5,7 @@ import { connectDB } from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import comptableRoutes from "./routes/comptableRoutes.js";
 import ResetPasswordRoutes from "./routes/ResetPasswordRoutes.js";
+import SuperAdminRoute from "./routes/SuperAdminRoutes.js";
 import cors from "cors";
 
 dotenv.config();
@@ -24,7 +25,7 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/comptable", comptableRoutes);
 app.use("/api/password/resetPassword", ResetPasswordRoutes);
-
+app.use("/api/superAdmin", SuperAdminRoute);
 // Start server only if not in test mode
 if (process.env.NODE_ENV !== "test") {
   const PORT = process.env.PORT || 3000;
