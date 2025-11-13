@@ -223,6 +223,7 @@ export async function registerComptable({ name, lastname, cin, email, password, 
 
     return { status: "active", token, user };
   }
+
   //update getComptableProfile for comptable
 export async function getProfileComptable(userId) {
   if (!userId) return { ok: false, error: "ID utilisateur manquant" };
@@ -243,6 +244,7 @@ export async function getProfileComptable(userId) {
     return { ok: false, error: "Impossible de contacter le serveur" };
   }
 }
+
 // updateProfileComptable
 export async function updateProfileComptable(data) {
   if (!data || !data.id) return { ok: false, error: "Invalid payload or missing user ID" };
@@ -262,6 +264,7 @@ export async function updateProfileComptable(data) {
     if (!res.ok) {
       return { ok: false, error: result.message || "Update failed" };
     }
+
     // Optionnel : stocker le profil mis à jour localement
     localStorage.setItem("profile", JSON.stringify(result.user || result));
     return { ok: true, profile: result.user || result };
@@ -271,6 +274,7 @@ export async function updateProfileComptable(data) {
     return { ok: false, error: "Network or server error" };
   }
 }
+
 // get all users
 export async function getAllUsers() {
   try {
@@ -315,3 +319,23 @@ export const loginSuperAdmin = async ({ email, password }) => {
 };
 
 
+// validate user (accept/reject)
+export async function validateUser(id, status) {
+  try {
+    const res = await fetch(`http://localhost:5000/api/comptable/validateUser/${id}`, { 
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      return { ok: false, error: errorData.message || "Erreur du serveur" };
+    }
+
+    const data = await res.json();
+    return { ok: true, user: data.user };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
