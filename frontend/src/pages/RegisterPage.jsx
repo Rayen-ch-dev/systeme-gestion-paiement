@@ -36,14 +36,27 @@ export default function RegisterPage() {
   });
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  const banks = useMemo(() => [
-    "Attijariwafa Bank",
-    "Banque Populaire",
-    "BMCE Bank of Africa",
-    "CIH Bank",
-    "Société Générale",
-    "Crédit Agricole",
-  ], []);
+const banks = useMemo(() => [
+  "BIAT (Banque Internationale Arabe de Tunisie)",
+  "Amen Bank",
+  "ATB (Arab Tunisian Bank)",
+  "BH Bank (Banque de l’Habitat)",
+  "BNA (Banque Nationale Agricole)",
+  "STB (Société Tunisienne de Banque)",
+  "UIB (Union Internationale de Banques)",
+  "UBCI (Union Bancaire pour le Commerce et l’Industrie)",
+  "BT (Banque de Tunisie)",
+  "BTK (Banque Tuniso-Koweïtienne)",
+  "Banque Zitouna",
+  "QNB Tunisie (Qatar National Bank)",
+  "ABC Bank (Arab Banking Corporation)",
+  "Banque Al Baraka",
+  "Wifak Bank",
+  "Tunisian Foreign Bank (TFBank)",
+  "Banque de Tunisie et des Émirats (BTE)",
+  "Banque de Financement des Petites et Moyennes Entreprises (BFPME)"
+], []);
+
 
   const validate = (data) => {
     const e = {};

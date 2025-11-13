@@ -6,7 +6,13 @@ export default function Header() {
   let isConnected = false;
   if (typeof window !== "undefined") {
     try {
-      const raw = localStorage.getItem("profile");
+      const token = localStorage.getItem("token");
+      if(token === null){
+        isConnected = false;
+      }
+      else{
+        isConnected = true;
+        const raw = localStorage.getItem("profile");
       if (raw) {
         const p = JSON.parse(raw);
         const fn = p.name || "";
@@ -17,6 +23,8 @@ export default function Header() {
         initials = (a + b).toUpperCase();
         isConnected = Boolean(fn || p.email);
       }
+      }
+
     } catch {}
   }
   return (
