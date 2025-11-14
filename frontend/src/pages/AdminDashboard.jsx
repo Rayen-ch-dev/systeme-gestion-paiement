@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { getAllUsers, validateUser } from "../api";
 
 export default function AdminDashboard() {
-
   const [pendingUsers, setPendingUsers] = useState([]);
   const [notification, setNotification] = useState(null);
 
@@ -11,121 +10,128 @@ export default function AdminDashboard() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Charger les utilisateurs en attente
+useEffect(() => {
+  (async () => {
+    const result = await getAllUsers();
+    if (result.ok) {
+      // Filtrer uniquement les utilisateurs non approuvés
+      const filteredUsers = (result.users.users || []).filter(
+        (user) => user.status !== "approuvé"
+      );
+      setPendingUsers(filteredUsers);
+    } else {
+      showNotification(result.error || "Erreur lors du chargement des utilisateurs", "error");
+    }
+  })();
+}, []);
 
-  useEffect(() => { 
-    (async () => { 
-      const result = await getAllUsers(); 
-      if (result.ok) { setPendingUsers(result.users.users || []); 
 
-      } else { showNotification(result.error || "Erreur lors du chargement des utilisateurs", "error"); 
-
-      }
-     })(); 
-    }, []);
-
-  // Accepter ou rejeter
   const handleStatusChange = async (id, status) => {
     const result = await validateUser(id, status);
     if (result.ok) {
       setPendingUsers(pendingUsers.filter((u) => u._id !== id));
       showNotification(
-        status === "approuvé"
-          ? "Utilisateur accepté avec succès ✅"
-          : "Utilisateur rejeté ❌",
+        status === "approuvé" ? "Utilisateur accepté ✅" : "Utilisateur rejeté ❌",
         status === "approuvé" ? "success" : "error"
       );
-    } else {
-      showNotification(result.error, "error");
-    }
+    } else showNotification(result.error, "error");
   };
+
   const handleLogout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("role");
-  localStorage.removeItem("profile");
-
-  window.location.href = "/login";
-};
-
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("profile");
+    window.location.href = "/login";
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6 relative">
+    <div className="relative min-h-screen p-6 bg-slate-50 overflow-hidden">
       {/* Notification */}
       {notification && (
         <div
-          className={`fixed top-6 right-6 px-4 py-3 rounded-lg shadow-lg text-white transition-all duration-300 ${
-            notification.type === "success" ? "bg-green-600" : "bg-red-600"
+          className={`fixed top-6 right-6 px-4 py-3 rounded-xl shadow-lg text-white transition-all duration-300 ${
+            notification.type === "success" ? "bg-emerald-500" : "bg-rose-500"
           }`}
         >
           {notification.message}
         </div>
       )}
 
-      {/* Header */}
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-md p-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-  <h1 className="text-2xl font-bold text-gray-800">Comptable Dashboard</h1>
+      <div className="mx-auto max-w-6xl grid gap-6 relative">
+        {/* Main Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-white/70 bg-white/70 backdrop-blur-xl shadow-[var(--shadow-soft)]">
 
-  <div className="flex gap-3">
-<button
-  onClick={handleLogout}
-  className="px-6 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-lg hover:from-brand-600 hover:to-brand-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
->
-  Logout
-</button>
-
-    <a
-      href="/ProfileComptable"
-      className="px-6 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-lg hover:from-brand-600 hover:to-brand-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-    >
-      Personal Information
-    </a>
-  </div>
-</div>
-
-
-      {/* Pending Users */}
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Manage user requests
-        </h2>
-
-        {pendingUsers.length === 0 ? (
-          <p className="text-gray-500 text-center py-6">
-            No pending user requests.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {pendingUsers.map((user) => (
-              <div
-                key={user._id}
-                className="flex justify-between items-center border rounded-lg p-4 hover:bg-gray-50 transition"
-              >
-                <div>
-                  <h3 className="text-lg font-medium text-gray-800">
-                    {user.name} {user.lastName}
-                  </h3>
-                  <p className="text-sm text-gray-500">{user.email}</p>
-                  <p className="text-sm text-gray-400">{user.role}</p>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleStatusChange(user._id, "approuvé")}
-                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(user._id, "non-approuvé")}
-                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-            ))}
+          {/* Subtle background blobs */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-16 -right-16 h-36 w-36 rounded-full bg-slate-400/10 blur-2xl" />
+            <div className="absolute -bottom-20 -left-20 h-44 w-44 rounded-full bg-slate-500/10 blur-3xl" />
           </div>
-        )}
+
+          <div className="relative p-7">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-2.5 py-1 text-[11px] text-slate-600 shadow-sm">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Comptable
+                </div>
+
+                <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
+                  Comptable Dashboard
+                </h1>
+                <p className="mt-1 text-sm text-slate-600 max-w-prose">
+                  Gérer les utilisateurs en attente et leurs demandes.
+                </p>
+              </div>
+
+              <div className="flex gap-3 mt-4 sm:mt-0">
+                <button
+                  onClick={handleLogout}
+                  className="px-5 py-2.5 inline-flex items-center justify-center gap-2 rounded-xl border border-white/70 bg-white/90 hover:bg-white text-slate-700 text-sm shadow-sm transition-all duration-300"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+
+            {/* Pending Users */}
+            <div className="mt-6 space-y-4">
+              {pendingUsers.length === 0 ? (
+                <p className="text-slate-500 text-center py-6">No pending user requests.</p>
+              ) : (
+                pendingUsers.map((user) => (
+                  <div
+                    key={user._id}
+                    className="relative p-4 rounded-2xl border border-white/60 bg-white/80 backdrop-blur-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow-md transition-all duration-300"
+                  >
+                    <div>
+                      <h3 className="text-lg font-medium text-slate-900">
+                        {user.name} {user.lastName}
+                      </h3>
+                      <p className="text-sm text-slate-500">{user.email}</p>
+                      <p className="text-sm text-slate-400">{user.role}</p>
+                    </div>
+
+                    <div className="flex gap-2 mt-2 sm:mt-0">
+                      <button
+                        onClick={() => handleStatusChange(user._id, "approuvé")}
+                        className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all duration-300"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleStatusChange(user._id, "non-approuvé")}
+                        className="px-4 py-2 rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-all duration-300"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
