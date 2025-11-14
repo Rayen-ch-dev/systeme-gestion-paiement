@@ -39,6 +39,14 @@ export default function AdminDashboard() {
       showNotification(result.error, "error");
     }
   };
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  localStorage.removeItem("profile");
+
+  window.location.href = "/login";
+};
+
 
   return (
     <div className="min-h-screen bg-gray-100 p-6 relative">
@@ -58,12 +66,12 @@ export default function AdminDashboard() {
   <h1 className="text-2xl font-bold text-gray-800">Comptable Dashboard</h1>
 
   <div className="flex gap-3">
-    <a
-      href="/login"
-      className="px-6 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-lg hover:from-brand-600 hover:to-brand-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-    >
-      Logout
-    </a>
+<button
+  onClick={handleLogout}
+  className="px-6 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-lg hover:from-brand-600 hover:to-brand-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+>
+  Logout
+</button>
 
     <a
       href="/ProfileComptable"

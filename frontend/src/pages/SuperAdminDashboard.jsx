@@ -30,6 +30,15 @@ export default function SuperAdminDashboard() {
     window.location.href = "/CreateNewAdmin";
   };
 
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  localStorage.removeItem("profile");
+
+  window.location.href = "/login";
+};
+
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       {/* Dashboard Header */}
@@ -39,12 +48,13 @@ export default function SuperAdminDashboard() {
   </h1>
 
   <div className="flex flex-col sm:flex-row gap-3">
-    <a
-      href="/login"
-      className="px-6 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-2xl shadow-lg hover:from-brand-600 hover:to-brand-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 text-center"
-    >
-      Logout
-    </a>
+ <button
+  onClick={handleLogout}
+  className="px-6 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-lg hover:from-brand-600 hover:to-brand-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+>
+  Logout
+</button>
+
 
     <button
       onClick={HandleCreation}
