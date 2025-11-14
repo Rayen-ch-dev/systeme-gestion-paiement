@@ -46,15 +46,26 @@ export default function AdminDashboard() {
       )}
 
       {/* Header */}
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-md p-6 mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-        <a
-          href="/ProfileComptable"
-          className="inline-block px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 shadow-sm"
-        >
-          Personal Information
-        </a>
-      </div>
+      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-md p-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+  <h1 className="text-2xl font-bold text-gray-800">Comptable Dashboard</h1>
+
+  <div className="flex gap-3">
+    <a
+      href="/login"
+      className="px-6 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-lg hover:from-brand-600 hover:to-brand-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+    >
+      Logout
+    </a>
+
+    <a
+      href="/ProfileComptable"
+      className="px-6 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl shadow-lg hover:from-brand-600 hover:to-brand-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+    >
+      Personal Information
+    </a>
+  </div>
+</div>
+
 
       {/* Pending Users Section */}
       <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-md p-6">
