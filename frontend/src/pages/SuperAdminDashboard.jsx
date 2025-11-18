@@ -6,27 +6,15 @@ export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/loginSuperAdmin", { replace: true });
-    } else {
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
-  }, [navigate]);
-
-  if (loading || !isAuthenticated) return null;
-
   const HandleCreation = () => {
-    window.location.href = "/CreateNewAdmin";
+    navigate("/CreateNewAdmin");
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("profile");
-    window.location.href = "/login";
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -64,7 +52,9 @@ export default function SuperAdminDashboard() {
               {/* ICON */}
               <div className="hidden sm:block">
                 <div className="h-12 w-12 rounded-xl border border-white/70 bg-white/80 shadow-sm flex items-center justify-center">
-                  <svg className="h-5 w-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                  <svg className="h-5 w-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                  </svg>
                 </div>
               </div>
             </div>

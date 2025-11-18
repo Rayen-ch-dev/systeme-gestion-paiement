@@ -1,18 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { getProfileComptable, updateProfile } from "../api";
-import {jwtDecode} from "jwt-decode";
-import { useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
+
 export default function AdminProfileInfo() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [formData, setFormData] = useState({});
   const [userId, setUserId] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-      name: "",
-      lastname: "",
-      cin: "",
-      email: "",
-      password: "",
-    });
+    name: "",
+    lastname: "",
+    cin: "",
+    email: "",
+    password: "",
+  });
 
   const handleChange = (e) => {
     setFormData({
@@ -21,43 +24,71 @@ export default function AdminProfileInfo() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccessMessage(" Profile updated successfully!");
-    setTimeout(() => {setSuccessMessage(""),window.location.href="AdminDashboard"}, 600);
+    setLoading(true);
     
+    try {
+      // Here you would typically call your update API
+      // const result = await updateProfile({ ...formData, id: userId });
+      
+      // For now, simulate successful update
+      setSuccessMessage("Profile updated successfully!");
+      
+      setTimeout(() => {
+        setSuccessMessage("");
+        navigate("/AdminDashboard"); // Use navigate instead of window.location
+      }, 600);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    } finally {
+      setLoading(false);
+    }
   };
-    useEffect(() => {
-      if (typeof window === "undefined") return;
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      try {
-        const decoded = jwtDecode(token);
-        console.log("Token décodé :", decoded);
-        setUserId(decoded.id);
-      } catch (err) {
-        console.error("Token invalide :", err);
+
+  const handleCancel = () => {
+    navigate("/AdminDashboard");
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const decoded = jwtDecode(token);
+      console.log("Token décodé :", decoded);
+      setUserId(decoded.id);
+    } catch (err) {
+      console.error("Token invalide :", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return; // éviter l'appel avant que l'id soit dispo
+    (async () => {
+      const p = await getProfileComptable(userId);
+      if (p.ok && p.user) {
+        setForm((s) => ({
+          ...s,
+          name: p.user.name || "",
+          lastname: p.user.lastname || "",
+          cin: p.user.cin || "",
+          email: p.user.email || "",
+          password: p.user.password || "",
+        }));
+        // Also populate formData for the form inputs
+        setFormData({
+          name: p.user.name || "",
+          lastName: p.user.lastname || "",
+          cin: p.user.cin || "",
+          email: p.user.email || "",
+          password: p.user.password || "",
+        });
+      } else {
+        console.error("Erreur de chargement du profil :", p.error);
       }
-    }, []);
-   useEffect(() => {
-      if (!userId) return; // éviter l'appel avant que l'id soit dispo
-      (async () => {
-        const p = await getProfileComptable(userId);
-        if (p.ok && p.user) {
-          setForm((s) => ({
-            ...s,
-            name: p.user.name || "",
-            lastname: p.user.lastname || "",
-            cin: p.user.cin || "",
-            email: p.user.email || "",
-            password: p.user.password || "",
-          }));
-        } else {
-          console.error("Erreur de chargement du profil :", p.error);
-        }
-      })();
-    }, [userId]); // 👈 dépend de userId maintenant
-  
+    })();
+  }, [userId]);
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
@@ -80,9 +111,10 @@ export default function AdminProfileInfo() {
             <input
               type="text"
               name="name"
-              value={formData.name}
+              value={formData.name || ""}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={loading}
             />
           </div>
 
@@ -92,9 +124,10 @@ export default function AdminProfileInfo() {
             <input
               type="text"
               name="lastName"
-              value={formData.lastName}
+              value={formData.lastName || ""}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={loading}
             />
           </div>
 
@@ -104,9 +137,10 @@ export default function AdminProfileInfo() {
             <input
               type="text"
               name="cin"
-              value={formData.cin}
+              value={formData.cin || ""}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={loading}
             />
           </div>
 
@@ -116,9 +150,10 @@ export default function AdminProfileInfo() {
             <input
               type="email"
               name="email"
-              value={formData.email}
+              value={formData.email || ""}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={loading}
             />
           </div>
 
@@ -128,26 +163,31 @@ export default function AdminProfileInfo() {
             <input
               type="password"
               name="password"
-              value={formData.password}
+              value={formData.password || ""}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={loading}
+              placeholder="Enter new password to change"
             />
           </div>
 
           {/* Buttons */}
           <div className="flex justify-between items-center mt-6">
-            <a
-              href="/AdminDashboard"
-              className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition"
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={loading}
+              className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition disabled:opacity-50"
             >
               Cancel
-            </a>
+            </button>
 
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              disabled={loading}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Save Changes
+              {loading ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>

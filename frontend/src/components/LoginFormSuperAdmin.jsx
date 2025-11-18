@@ -13,6 +13,7 @@ export default function LoginFormSuperAdmin({ onSubmit, loading }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Email Field */}
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Adresse e-mail (Super Admin)</span>
         <input
@@ -21,7 +22,8 @@ export default function LoginFormSuperAdmin({ onSubmit, loading }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="admin@plateforme.tld"
           required
-          className="mt-1 block w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-300 transition"
+          disabled={loading}
+          className="mt-1 block w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-300 transition disabled:opacity-60 disabled:cursor-not-allowed"
         />
       </label>
 
@@ -34,12 +36,14 @@ export default function LoginFormSuperAdmin({ onSubmit, loading }) {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
           required
-          className="mt-1 block w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-300 pr-10 transition"
+          disabled={loading}
+          className="mt-1 block w-full rounded-md border border-slate-200 px-3 py-2 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-300 pr-10 transition disabled:opacity-60 disabled:cursor-not-allowed"
         />
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
-          className="absolute right-2 top-9 text-slate-400 hover:text-slate-600"
+          disabled={loading}
+          className="absolute right-2 top-9 text-slate-400 hover:text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
           aria-label={show ? "Masquer le mot de passe" : "Afficher le mot de passe"}
           aria-pressed={show}
         >
@@ -58,14 +62,12 @@ export default function LoginFormSuperAdmin({ onSubmit, loading }) {
         </button>
       </label>
 
-
-
       {/* Submit Button */}
       <div className="flex flex-col gap-3 mt-4">
         <button
           type="submit"
-          disabled={loading}
-          className="w-full flex justify-center items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 text-sm font-semibold shadow-md hover:shadow-lg active:translate-y-[1px] transition-all duration-200 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          disabled={loading || !email || !password}
+          className="w-full flex justify-center items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 text-sm font-semibold shadow-md hover:shadow-lg active:translate-y-[1px] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
           {loading && (
             <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
@@ -73,7 +75,7 @@ export default function LoginFormSuperAdmin({ onSubmit, loading }) {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
             </svg>
           )}
-          {loading ? "Connexion en cours..." : "Se connecter "}
+          {loading ? "Connexion en cours..." : "Se connecter"}
         </button>
       </div>
     </form>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { getAllUsers, validateUser } from "../api";
 
 export default function AdminDashboard() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [pendingUsers, setPendingUsers] = useState([]);
   const [notification, setNotification] = useState(null);
 
@@ -10,21 +12,20 @@ export default function AdminDashboard() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-useEffect(() => {
-  (async () => {
-    const result = await getAllUsers();
-    if (result.ok) {
-      // Filtrer uniquement les utilisateurs non approuvés
-      const filteredUsers = (result.users.users || []).filter(
-        (user) => user.status !== "approuvé"
-      );
-      setPendingUsers(filteredUsers);
-    } else {
-      showNotification(result.error || "Erreur lors du chargement des utilisateurs", "error");
-    }
-  })();
-}, []);
-
+  useEffect(() => {
+    (async () => {
+      const result = await getAllUsers();
+      if (result.ok) {
+        // Filtrer uniquement les utilisateurs non approuvés
+        const filteredUsers = (result.users.users || []).filter(
+          (user) => user.status === "approuvé"
+        );
+        setPendingUsers(filteredUsers);
+      } else {
+        showNotification(result.error || "Erreur lors du chargement des utilisateurs", "error");
+      }
+    })();
+  }, []);
 
   const handleStatusChange = async (id, status) => {
     const result = await validateUser(id, status);
@@ -41,7 +42,7 @@ useEffect(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("profile");
-    window.location.href = "/login";
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -89,6 +90,10 @@ useEffect(() => {
                   onClick={handleLogout}
                   className="px-5 py-2.5 inline-flex items-center justify-center gap-2 rounded-xl border border-white/70 bg-white/90 hover:bg-white text-slate-700 text-sm shadow-sm transition-all duration-300"
                 >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8v8a2 2 0 002 2h3"/>
+                  </svg>
                   Logout
                 </button>
               </div>

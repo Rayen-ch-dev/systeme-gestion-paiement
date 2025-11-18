@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom"; // Added useNavigate
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -9,6 +9,8 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
 
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate(); // Initialize useNavigate
+  
   const token = searchParams.get("token")?.trim();
   const id = searchParams.get("id");
   const type = searchParams.get("type");
@@ -51,12 +53,12 @@ export default function ResetPasswordPage() {
 
       if (res.ok) {
         setMessage(data.message || "Votre mot de passe a été réinitialisé avec succès !");
-        // Redirect to login after short delay
+        // Redirect to login after short delay using navigate
         setTimeout(() => {
-          window.location.href = "/login";
+          navigate("/login", { replace: true });
         }, 1500);
       } else {
-        setError("Erreur lors de la réinitialisation du mot de passe.");
+        setError(data.message || "Erreur lors de la réinitialisation du mot de passe.");
       }
     } catch (err) {
       setError("Impossible de contacter le serveur.");
@@ -66,7 +68,7 @@ export default function ResetPasswordPage() {
   };
 
   const handleCancel = () => {
-    window.location.href = "/login";
+    navigate("/login");
   };
 
   return (
@@ -97,6 +99,7 @@ export default function ResetPasswordPage() {
                 placeholder="Entrez votre nouveau mot de passe"
                 required
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                disabled={loading}
               />
             </div>
 
@@ -109,6 +112,7 @@ export default function ResetPasswordPage() {
                 placeholder="Confirmez votre mot de passe"
                 required
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                disabled={loading}
               />
             </div>
 
@@ -116,7 +120,8 @@ export default function ResetPasswordPage() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="w-1/2 bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg hover:bg-gray-400 transition"
+                disabled={loading}
+                className="w-1/2 bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg hover:bg-gray-400 transition disabled:opacity-50"
               >
                 Annuler
               </button>
@@ -124,9 +129,19 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-1/2 bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                className="w-1/2 bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Envoi..." : "Confirmer"}
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Envoi...
+                  </span>
+                ) : (
+                  "Confirmer"
+                )}
               </button>
             </div>
           </form>

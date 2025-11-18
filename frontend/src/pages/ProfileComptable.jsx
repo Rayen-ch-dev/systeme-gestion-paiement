@@ -1,9 +1,11 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { emailRegex } from "../utils/data";
 import { getProfileComptable, updateProfileComptable } from "../api";
 import { jwtDecode } from "jwt-decode";
 
 export default function ProfilePage() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [form, setForm] = useState({
     name: "",
     lastname: "",
@@ -68,17 +70,17 @@ export default function ProfilePage() {
         const p = await getProfileComptable(userId);
         console.log("🔹 Réponse profil :", p);
 
-      if (p.ok) {
-        setForm((s) => ({
-          ...s,
-          name: p.user.user.name || "",
-          lastname: p.user.user.lastname || "",
-          cin: p.user.user.cin || "",
-          email: p.user.user.email || "",
-        }));
-      } else {
-        console.error("Erreur de chargement du profil :", p.error);
-      }
+        if (p.ok) {
+          setForm((s) => ({
+            ...s,
+            name: p.user.user.name || "",
+            lastname: p.user.user.lastname || "",
+            cin: p.user.user.cin || "",
+            email: p.user.user.email || "",
+          }));
+        } else {
+          console.error("Erreur de chargement du profil :", p.error);
+        }
       } catch (err) {
         console.error("❌ Erreur lors du chargement du profil :", err);
       }
@@ -109,6 +111,11 @@ export default function ProfilePage() {
       if (result.ok) {
         setSaved(true);
         console.log("✅ Profil mis à jour :", result.profile || result);
+        // Optional: Redirect after successful save
+        setTimeout(() => {
+          setSaved(false);
+          navigate("/AdminDashboard"); // Redirect to dashboard after save
+        }, 2000);
       } else {
         console.error("❌ Erreur de mise à jour :", result.error || result);
       }
@@ -116,8 +123,12 @@ export default function ProfilePage() {
       console.error("❌ Erreur inattendue :", err);
     } finally {
       setSaving(false);
-      setTimeout(() => setSaved(false), 2000);
     }
+  };
+
+  // ✅ Handle cancel navigation
+  const handleCancel = () => {
+    navigate("/AdminDashboard");
   };
 
   return (
@@ -160,8 +171,8 @@ export default function ProfilePage() {
                 >
                   Profil
                 </button>
-                 <button
-                 disabled
+                <button
+                  disabled
                   type="button"
                   onClick={() => setActiveTab("securite")}
                   className={`inline-flex items-center gap-2 px-3 py-2 rounded-full ${
@@ -170,9 +181,7 @@ export default function ProfilePage() {
                       : "text-slate-600 hover:text-slate-800"
                   }`}
                 >
-                  
-                </button> 
-              
+                </button>
               </nav>
             </div>
 
@@ -207,6 +216,7 @@ export default function ProfilePage() {
                             ? "Ex: AA123456"
                             : "votre.email@exemple.com"
                         }
+                        disabled={saving}
                       />
                       {errors[field] && touched[field] && (
                         <span className="text-xs text-red-600">
@@ -217,7 +227,7 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-{activeTab === "securite" && (
+              {activeTab === "securite" && (
                 <label className="block mt-3">
                   <span className="text-sm text-slate-700">
                     Nouveau mot de passe
@@ -229,30 +239,33 @@ export default function ProfilePage() {
                       value={form.password}
                       onChange={onChange("password")}
                       placeholder="••••••••"
+                      disabled={saving}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPwd((v) => !v)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500"
+                      disabled={saving}
                     >
                       {showPwd ? "Masquer" : "Afficher"}
                     </button>
                   </div>
                 </label>
-              )} 
-              
+              )}
 
               <div className="mt-6 border-t border-white/60 pt-5 flex justify-end gap-3">
-                <a
-                  href="/AdminDashboard"
-                  className="rounded-md border border-slate-200 bg-white/80 hover:bg-white px-4 py-2 text-sm text-slate-700"
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={saving}
+                  className="rounded-md border border-slate-200 bg-white/80 hover:bg-white px-4 py-2 text-sm text-slate-700 disabled:opacity-50"
                 >
                   Annuler
-                </a>
+                </button>
                 <button
                   type="submit"
                   disabled={!canSave || saving}
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium shadow-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium shadow-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:cursor-not-allowed"
                 >
                   {saving && (
                     <svg
@@ -275,7 +288,7 @@ export default function ProfilePage() {
                       />
                     </svg>
                   )}
-                  Enregistrer
+                  {saving ? "Enregistrement..." : "Enregistrer"}
                 </button>
               </div>
             </form>

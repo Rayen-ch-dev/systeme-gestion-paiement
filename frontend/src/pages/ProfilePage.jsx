@@ -1,8 +1,12 @@
-import React, { useMemo, useState, useEffect, use } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { emailRegex } from "../utils/data";
 import { getProfile, updateProfile } from "../api";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
+
 export default function ProfilePage() {
+  const navigate = useNavigate(); // Initialize useNavigate
+  
   const roleFromStorage =
     typeof window !== "undefined"
       ? localStorage.getItem("role") || "Formateur"
@@ -92,44 +96,48 @@ export default function ProfilePage() {
 
   const canSave = Object.keys(errors).length === 0;
 
- const onSubmit = async (e) => {
-  e.preventDefault();
+  const onSubmit = async (e) => {
+    e.preventDefault();
 
-  // Validation des champs
-  const eMap = validate(form);
-  setErrors(eMap);
-  setTouched({
-    name: true,
-    lastname: true,
-    cin: true,
-    email: true,
-    password: true,
-    specialite: true,
-    fonction: true,
-  });
+    // Validation des champs
+    const eMap = validate(form);
+    setErrors(eMap);
+    setTouched({
+      name: true,
+      lastname: true,
+      cin: true,
+      email: true,
+      password: true,
+      specialite: true,
+      fonction: true,
+    });
 
-  // Si erreurs, on arrête
-  if (Object.keys(eMap).length > 0) return;
+    // Si erreurs, on arrête
+    if (Object.keys(eMap).length > 0) return;
 
-  setSaving(true);
+    setSaving(true);
 
-  try {
-    const result = await updateProfile({ ...form, id: userId });
+    try {
+      const result = await updateProfile({ ...form, id: userId });
 
-    if (result.ok) {
-      setSaved(true);
-      console.log("Profil mis à jour avec succès :", result.profile);
-    } else {
-      console.error("Erreur lors de la mise à jour :", result.error);
+      if (result.ok) {
+        setSaved(true);
+        console.log("Profil mis à jour avec succès :", result.profile);
+      } else {
+        console.error("Erreur lors de la mise à jour :", result.error);
+      }
+    } catch (err) {
+      console.error("Erreur inattendue :", err);
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaved(false), 2000);
     }
-  } catch (err) {
-    console.error("Erreur inattendue :", err);
-  } finally {
-    setSaving(false);
-    setTimeout(() => setSaved(false), 2000);
-  }
-};
+  };
 
+  // Function to handle cancel and go back to dashboard
+  const handleCancel = () => {
+    navigate("/dashboard");
+  };
 
   return (
     <div className="relative min-h-[calc(100vh-56px)] flex items-center justify-center p-6 bg-slate-50 overflow-hidden">
@@ -159,14 +167,6 @@ export default function ProfilePage() {
                 <button type="button" onClick={() => setActiveTab("profil")} className={`inline-flex items-center gap-2 px-3 py-2 rounded-full ${activeTab === "profil" ? "bg-white text-slate-900" : "text-slate-600 hover:text-slate-800"}`}>
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 7a4 4 0 110-8 4 4 0 010 8z"/></svg>
                   Profil
-                </button>
-                <button type="button" onClick={() => setActiveTab("securite")} className={`inline-flex items-center gap-2 px-3 py-2 rounded-full ${activeTab === "securite" ? "bg-white text-slate-900" : "text-slate-600 hover:text-slate-800"}`}>
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.5 20a6.5 6.5 0 0113 0"/></svg>
-                  Sécurité
-                </button>
-                <button type="button" onClick={() => setActiveTab("metier")} className={`inline-flex items-center gap-2 px-3 py-2 rounded-full ${activeTab === "metier" ? "bg-white text-slate-900" : "text-slate-600 hover:text-slate-800"}`}>
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-3-3v6"/></svg>
-                  Métier
                 </button>
               </nav>
             </div>
@@ -206,47 +206,15 @@ export default function ProfilePage() {
                 </div>
               ) : null}
 
-              {activeTab === "securite" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <label className="block md:col-span-2">
-                    <span className="text-sm text-slate-700">Mot de passe</span>
-                    <div className="relative mt-1">
-                      <span className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.5 20a6.5 6.5 0 0113 0"/></svg>
-                      </span>
-                      <input type={showPwd ? "text" : "password"} className={`w-full rounded-md border pr-20 pl-9 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.password && touched.password) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.password} onChange={onChange("password")} onBlur={onBlur("password")} placeholder="••••••••" />
-                      <button type="button" onClick={() => setShowPwd((v) => !v)} className="absolute inset-y-0 right-0 my-1 mr-1 rounded-md border border-slate-200 bg-white/80 hover:bg-white px-2 text-xs text-slate-600">
-                        {showPwd ? "Masquer" : "Afficher"}
-                      </button>
-                    </div>
-                    {(errors.password && touched.password) ? <span className="text-xs text-red-600">{errors.password}</span> : null}
-                  </label>
-                </div>
-              ) : null}
-
-              {activeTab === "metier" ? (
-                <div className="grid grid-cols-1 gap-4">
-                  {roleFromStorage === "Formateur" ? (
-                    <label className="block">
-                      <span className="text-sm text-slate-700">Spécialité</span>
-                      <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.specialite && touched.specialite) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.specialite} onChange={onChange("specialite")} onBlur={onBlur("specialite")} placeholder="Ex: React, Data, Réseaux..." />
-                      {(errors.specialite && touched.specialite) ? <span className="text-xs text-red-600">{errors.specialite}</span> : null}
-                    </label>
-                  ) : null}
-
-                  {roleFromStorage === "Coordinateur" ? (
-                    <label className="block">
-                      <span className="text-sm text-slate-700">Fonction</span>
-                      <input className={`mt-1 w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${(errors.fonction && touched.fonction) ? "border-red-300 focus:ring-red-300" : "border-slate-200 focus:ring-brand-300"}`} value={form.fonction} onChange={onChange("fonction")} onBlur={onBlur("fonction")} placeholder="Ex: Coordination pédagogique" />
-                      {(errors.fonction && touched.fonction) ? <span className="text-xs text-red-600">{errors.fonction}</span> : null}
-                    </label>
-                  ) : null}
-                </div>
-              ) : null}
-
               <div className="mt-6 border-t border-white/60 pt-5">
                 <div className="flex items-center gap-3 justify-end">
-                  <a href="/dashboard" className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white/80 hover:bg-white px-4 py-2 text-sm text-slate-700">Annuler</a>
+                  <button 
+                    type="button" 
+                    onClick={handleCancel} 
+                    className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white/80 hover:bg-white px-4 py-2 text-sm text-slate-700"
+                  >
+                    Annuler
+                  </button>
                   <button type="submit" disabled={!canSave || saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium shadow-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400">
                     {saving ? (
                       <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
@@ -262,4 +230,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

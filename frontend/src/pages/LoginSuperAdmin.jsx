@@ -1,12 +1,15 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import StatusAlert from "../components/StatusAlert";
 import { loginSuperAdmin } from "../api"; // <-- make sure this points to your new SuperAdmin API
 import LoginFormSuperAdmin from "../components/LoginFormSuperAdmin";
 
 export default function LoginSuperAdmin() {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [status, setStatus] = useState(null);
   const [adminContact, setAdminContact] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(""); // Add error state
 
   // Front API login
   const apiLogin = ({ email, password }) => loginSuperAdmin({ email, password });
@@ -16,32 +19,41 @@ export default function LoginSuperAdmin() {
     setLoading(true);
     setStatus(null);
     setAdminContact(null);
+    setError("");
 
     try {
       const res = await apiLogin(values);
       console.log(res);
-      const { token, user } = res;
-
-      // Save token and profile
+      
       if (typeof window !== "undefined") {
-        const profile = {
-          id: user.id,
-          name: user.name,
-          lastname: user.lastname,
-          cin: user.cin,
-          email: user.email,
-          token: token,
-        };
-        localStorage.setItem("profile", JSON.stringify(profile));
-        localStorage.setItem("token", token);
-      }
+        const { token, user } = res;
 
-      // Redirect to dashboard
-      setTimeout(() => {
-        window.location.href = "/SuperAdminDashboard";
-      }, 800);
+        // Save token and profile
+        if (typeof window !== "undefined") {
+          const profile = {
+            id: user.id,
+            name: user.name,
+            lastname: user.lastname,
+            cin: user.cin,
+            email: user.email,
+            token: token,
+          };
+          localStorage.setItem("profile", JSON.stringify(profile));
+          localStorage.setItem("token", token);
+          localStorage.setItem("role", "super_admin"); // Store role for authorization
+        }
+          console.log("Redirection to /superadmindashboard");
+        // Redirect to dashboard using navigate
+        setTimeout(() => {
+          navigate("/superadmindashboard", { replace: true });
+        }, 800);
+       
+      } else {
+        setError(res.message || "Login failed. Please check your credentials.");
+      }
     } catch (err) {
       console.error(err);
+      setError("An error occurred during login. Please try again.");
       setAdminContact("support@platform.com"); // optional contact info
     } finally {
       setLoading(false);
@@ -80,11 +92,16 @@ export default function LoginSuperAdmin() {
             </div>
           </div>
 
+          {/* Error Message Display */}
+          {error && (
+            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           <StatusAlert status={status} adminContact={adminContact} />
 
           <LoginFormSuperAdmin onSubmit={handleSubmit} loading={loading} />
-
-
         </div>
       </div>
     </div>

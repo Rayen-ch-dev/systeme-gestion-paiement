@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React, { use, useState } from "react";
 import LoginForm from "../components/LoginForm";
 import StatusAlert from "../components/StatusAlert";
 import { auth } from "../api";
-
+import { useNavigate } from "react-router-dom";
 export default function LoginPage() {
   const [status, setStatus] = useState(null); // null | 'pending' | 'rejected' | 'active'
   const [adminContact, setAdminContact] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  const navigate = useNavigate(); 
 
 
 
@@ -23,7 +23,8 @@ export default function LoginPage() {
     try {
       const res = await apiLogin(values);
       if(res.role==="super_admin"){
-        window.location.href = `/SuperAdminDashboard`;
+        navigate("/superadmindashboard");
+        
         return;
  
       }
@@ -59,7 +60,8 @@ export default function LoginPage() {
         setTimeout(() => {
           // example redirect path
           const path = `/dashboard/${res.role.replace(/\s+/g, "-").toLowerCase()}`;
-          window.location.href = path;
+          navigate(path)
+         ;
         }, 800);
       }
     } catch (err) {
