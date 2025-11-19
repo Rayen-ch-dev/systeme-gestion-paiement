@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { emailRegex, ribRegex, cinRegex } from "../utils/data";
 import { auth } from "../api";
-
+import emailjs from "emailjs-com";
 
 
 export default function RegisterPage() {
@@ -137,18 +137,68 @@ const banks = useMemo(() => [
       setSubmitting(false);
     }
   };
+  //send email form
+const sendEmail = () => {
+  emailjs
+    .send(
+      "service_kd8x74c",
+      "template_acz6p9d",
+      {
+        to_name: `${form.firstName} ${form.lastName}`,  // or just form.firstName
+        role: role,
+        // add more variables here if your template needs them
+      },
+      "jkbntAAOriqCFbpuy"  // your EmailJS user ID
+    )
+    .then(() => {
+      console.log("Email sent successfully");
+    })
+    .catch((err) => {
+      console.error("Email sending failed:", err);
+    });
+};
+
+
 
   if (submitted) {
+    sendEmail()
     return (
       <div className="min-h-[calc(100vh-56px)] flex items-center justify-center p-6">
         <div className="bg-white rounded-xl p-7 shadow-[var(--shadow-soft)] border border-slate-100 max-w-lg w-full text-center">
           <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>
+            <svg
+              className="h-6 w-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
           </div>
-          <h1 className="text-lg font-semibold text-slate-900">Inscription envoyée</h1>
-          <p className="mt-1 text-slate-600 text-sm">Votre compte est en statut <span className="font-medium">en attente</span>. Une confirmation vous a été envoyée par email. L'accès sera activé après approbation administrative.</p>
+
+          <h1 className="text-lg font-semibold text-slate-900">
+            Inscription envoyée
+          </h1>
+
+          <p className="mt-1 text-slate-600 text-sm">
+            Votre compte est en statut{" "}
+            <span className="font-medium">en attente</span>. Une confirmation
+            vous a été envoyée par email. L'accès sera activé après approbation
+            administrative.
+          </p>
+
           <div className="mt-4">
-            <a href="/" className="inline-flex items-center justify-center rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium transition">Retour à la connexion</a>
+            <a
+              href="/"
+              className="inline-flex items-center justify-center rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium transition"
+            >
+              Retour à la connexion
+            </a>
           </div>
         </div>
       </div>
