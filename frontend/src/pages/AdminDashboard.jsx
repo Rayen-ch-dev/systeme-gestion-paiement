@@ -6,7 +6,7 @@ import emailjs from "emailjs-com";
 export default function AdminDashboard() {
   const navigate = useNavigate(); // Initialize useNavigate
   const [pendingUsers, setPendingUsers] = useState([]);
-  console.log("Pending users:", pendingUsers);
+
 
   const [notification, setNotification] = useState(null);
 
@@ -34,7 +34,6 @@ export default function AdminDashboard() {
   }, []);
 
 const handleStatusChange = async (id, status, userEmail, userName) => {
-  console.log(userEmail, userName);
   const result = await validateUser(id, status);
   if (result.ok) {
     setPendingUsers(pendingUsers.filter((u) => u._id !== id));

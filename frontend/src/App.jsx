@@ -14,6 +14,7 @@ import AdminProfileInfo from "./components/AdminProfileInfo";
 import LoginComptable from "./pages/LoginComptable";
 import ProfileComptable from "./pages/ProfileComptable";
 import LoginSuperAdmin from "./pages/LoginSuperAdmin";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   return (
@@ -25,19 +26,24 @@ export default function App() {
             <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/:role?" element={<Dashboard />} />
-            <Route path="/profile" element={<ProfilePage />} />
+            {/* Protected dashboard routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/:role?" element={<Dashboard />} />
+              <Route path="/superadmindashboard" element={<SuperAdminDashboard />} />
+              <Route path="/admindashboard" element={<AdminDashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/adminprofileinfo" element={<AdminProfileInfo />} />
+              <Route path="/profilecomptable" element={<ProfileComptable />} />
+              {/* Add other protected routes here */}
+            </Route>
+            {/* Public routes */}
             <Route path="/forgotpassword" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/superadmindashboard" element={<SuperAdminDashboard />} />
             <Route path="/createnewadmin" element={<AddAdmin />} />
-            <Route path="/admindashboard" element={<AdminDashboard />} />
-            <Route path="/adminprofileinfo" element={<AdminProfileInfo />} />
             <Route path="/logincomptable" element={<LoginComptable />} />
-            <Route path="/profilecomptable" element={<ProfileComptable />} />
             <Route path="/loginsuperadmin" element={<LoginSuperAdmin />} />
-            
+
             {/* 404 Page */}
             <Route path="*" element={<NotFound />} />
           </Routes>
