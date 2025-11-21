@@ -42,7 +42,6 @@ const userSchema = new mongoose.Schema({
   },
   rib: {
     type: String, 
-    required: function() { return this.role !== "super_admin"; },
     unique : true,
   },
   banque: {
