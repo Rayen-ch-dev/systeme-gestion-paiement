@@ -3,6 +3,7 @@ import { User } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+
 export const registerComptable = async (req, res) => {
   try {
     const { name, lastname, cin, email, password } = req.body;
@@ -13,8 +14,15 @@ export const registerComptable = async (req, res) => {
       return res.status(400).json({ message: "Email already in use" });
     }
 
-    // Create new comptable
-    const newComptable = new Comptable({ name, lastname, cin, email, password });
+    // Create new comptable with mustChangePassword = true
+    const newComptable = new Comptable({
+      name,
+      lastname,
+      cin,
+      email,
+      password,
+      mustChangePassword: true, // force password change on first login
+    });
     await newComptable.save();
 
     res.status(201).json({ message: "Comptable created successfully", comptable: newComptable });
@@ -22,6 +30,7 @@ export const registerComptable = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 export const loginComptable = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -38,9 +47,12 @@ export const loginComptable = async (req, res) => {
       return res.status(400).json({ message: "Email or password invalid" });
     }
 
-    // Generate JWT
+    // Generate JWT including mustChangePassword in payload
     const token = jwt.sign(
-      { id: user._id },
+      {
+        id: user._id,
+        mustChangePassword: user.mustChangePassword, // <-- include this
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -54,12 +66,14 @@ export const loginComptable = async (req, res) => {
         lastname: user.lastname,
         cin: user.cin,
         email: user.email,
+        mustChangePassword: user.mustChangePassword, // send this also separately for frontend convenience
       },
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // get all  comptable
 export const getAllComptables = async (req, res) => {
@@ -110,9 +124,12 @@ export const updateComptable = async (req, res) => {
     const updateData = { name, lastname, cin, email };
 
     if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+      // Hash the password before updating
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
     }
 
+    // Use findByIdAndUpdate to avoid triggering the pre-save hook (which would double-hash)
     const updated = await Comptable.findByIdAndUpdate(id, updateData, {
       new: true,
     });
@@ -165,5 +182,45 @@ export const validateUser = async (req, res) => {
     res.json({ message: `Utilisateur ${status}`, user });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+//change password compatble
+export const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id; // From authenticateToken middleware
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: "Le mot de passe est trop court." });
+    }
+
+    // Hash the new password before saving
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Use findByIdAndUpdate to avoid triggering the pre-save hook (which would double-hash)
+    const user = await Comptable.findByIdAndUpdate(
+      userId,
+      { 
+        password: hashedPassword,
+        mustChangePassword: false
+      },
+      { new: true } // Return updated document
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé." });
+    }
+
+    // Generate a new token with mustChangePassword: false
+    const token = jwt.sign(
+      { id: user._id, mustChangePassword: false, role: "comptable" },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({ message: "Mot de passe changé avec succès.", token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur." });
   }
 };

@@ -1,37 +1,37 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";  // <-- default import, no {}
 
 const useAuth = () => {
   const token = localStorage.getItem("token");
   if (!token) return false;
 
   try {
-    const { exp } = jwtDecode(token);
-    if (exp * 1000 < Date.now()) {
-      // Token expired
-      return false;
-    }
-    return true; // Token exists and is valid
-  } catch (error) {
-    // Invalid token format
+    const decoded = jwtDecode(token);
+    if (decoded.exp * 1000 < Date.now()) return false;
+
+    // Check mustChangePassword flag
+    if (decoded.mustChangePassword) return "change_password";
+
+    return true;
+  } catch {
     return false;
   }
 };
 
-export default function ProtectedRoute( ) {
-  const isAuthenticated = useAuth();
+export default function ProtectedRoute() {
+  const authStatus = useAuth();
 
-  if (!isAuthenticated) {
-    // Not logged in, redirect to login
+  if (authStatus === false) {
+    // Not logged in or token invalid, redirect to login
     return <Navigate to="/login" replace />;
   }
 
-  // Optionally add role check here if needed
-  // if (allowedRoles && !allowedRoles.includes(user.role)) {
-  //    return <Navigate to="/unauthorized" replace />;
-  // }
+  if (authStatus === "change_password") {
+    // User must change password before accessing other routes
+    return <Navigate to="/change-password" replace />;
+  }
 
+  // Authenticated and no password change required
   return <Outlet />; // Render child routes
 }
-

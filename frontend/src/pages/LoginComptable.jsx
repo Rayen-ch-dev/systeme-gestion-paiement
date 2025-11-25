@@ -13,57 +13,67 @@ export default function LoginComptable() {
   const [error, setError] = useState(""); // Add error state
 
   // Front API login (replaces previous mock)
-  const apiLogin = (payload) => loginComptable(payload);
-  
-  const handleSubmit = async (values) => {
-    setLoading(true);
-    setStatus(null);
-    setAdminContact(null);
-    setError("");
+const apiLogin = (payload) => loginComptable(payload);
 
-    try {
-      const res = await apiLogin(values);
-      
-        try {
-          if (typeof window !== "undefined") {
-            // Store token if available
-            if (res.token) {
-              localStorage.setItem("token", res.token);
-            }
-            if (res.role) {
-              localStorage.setItem("role", res.role);
-            }
-            
-            // persist a minimal profile for header/slide-over usage
-            const existing = localStorage.getItem("profile");
-            const current = existing ? JSON.parse(existing) : {};
-            const nextProfile = {
-              ...current,
-              email: values.email || current.email || "",
-              name: values.name || current.name || "",
-              lastname: values.lastname || current.lastname || "",
-              cin: values.cin || current.cin || "",
-              password: values.password || current.password || "",
-            };
-            localStorage.setItem("profile", JSON.stringify(nextProfile));
-          }
-        } catch (error) {
-          console.error("Error saving to localStorage:", error);
-        }
-        
-        // Use navigate instead of window.location.href
-        setTimeout(() => {
-          navigate("/admindashboard", { replace: true });
-        }, 800);
-      
-    } catch (err) {
-      console.error(err);
-      setError("An error occurred during login. Please try again.");
-      setAdminContact(null);
-    } finally {
+  
+const handleSubmit = async (values) => {
+  setLoading(true);
+  setStatus(null);
+  setAdminContact(null);
+  setError("");
+
+  try {
+    const res = await apiLogin(values);
+
+    // If backend returned an error (ex: email invalid)
+    if (!res || res.error) {
+      setError(res?.message || "Email or password invalid");
       setLoading(false);
+      return;
     }
-  };
+
+    // Save token & profile
+    try {
+      if (typeof window !== "undefined") {
+        if (res.token) localStorage.setItem("token", res.token);
+
+        const existing = localStorage.getItem("profile");
+        const current = existing ? JSON.parse(existing) : {};
+
+        const nextProfile = {
+          ...current,
+          email: values.email || current.email || "",
+          name: values.name || current.name || "",
+          lastname: values.lastname || current.lastname || "",
+          cin: values.cin || current.cin || "",
+        };
+
+        localStorage.setItem("profile", JSON.stringify(nextProfile));
+      }
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+    }
+
+    // Redirect after login
+    setTimeout(() => {
+      navigate("/admindashboard", { replace: true });
+    }, 800);
+
+  } catch (err) {
+    console.error(err);
+
+    // Extract backend JSON error instead of generic text
+    const backendMessage =
+      err?.response?.data?.message || // axios-like
+      err?.message ||
+      "Email or password invalid";
+
+    setError(backendMessage);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleRegisterRedirect = () => {
     navigate("/register");

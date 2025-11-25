@@ -15,6 +15,7 @@ import LoginComptable from "./pages/LoginComptable";
 import ProfileComptable from "./pages/ProfileComptable";
 import LoginSuperAdmin from "./pages/LoginSuperAdmin";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             {/* Protected dashboard routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
