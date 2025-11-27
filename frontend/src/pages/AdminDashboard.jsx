@@ -2,13 +2,24 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { getAllUsers, validateUser } from "../api";
 import emailjs from "emailjs-com";
-
+import { jwtDecode } from "jwt-decode";
 export default function AdminDashboard() {
   const navigate = useNavigate(); // Initialize useNavigate
   const [pendingUsers, setPendingUsers] = useState([]);
 
 
   const [notification, setNotification] = useState(null);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+
+      const decoded = jwtDecode(token);
+      if (decoded.mustChangePassword) {
+        // Redirect if password must be changed
+        navigate("/change-password");
+      }
+
+  }, [navigate]);
 
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });

@@ -141,6 +141,7 @@ const sendEmail = () => {
       {
         to_name: `${form.firstName} ${form.lastName}`,  // or just form.firstName
         role: role,
+        to_email: form.email, 
         // add more variables here if your template needs them
       },
       "jkbntAAOriqCFbpuy"  // your EmailJS user ID

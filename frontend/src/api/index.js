@@ -194,6 +194,7 @@ export async function registerComptable({ name, lastname, cin, email, password, 
   export async function loginComptable({ email, password }) {
     // Basic checks
     if (!email || !password) return { status: "rejected", error: "Missing credentials" };
+    console.log("Sending login data:", { email, password });
 
     // Call backend auth
     const res = await fetch("/api/comptable/login", {

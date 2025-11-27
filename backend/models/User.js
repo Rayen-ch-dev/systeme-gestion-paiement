@@ -63,6 +63,7 @@ const userSchema = new mongoose.Schema({
     required: function() { return this.role === "coordinateur"; },
     trim: true,
   },
+
   createdAt: {
     type: Date,
     default: Date.now,
