@@ -11,7 +11,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    
   },
   cin: {
     type: String,
@@ -21,7 +20,6 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
     lowercase: true,
     trim: true,
   },
@@ -31,39 +29,41 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["super_admin","formateur", "coordinateur"],
+    enum: ["super_admin", "formateur", "coordinateur"],
     default: "formateur",
   },
   status: {
     type: String,
     enum: ["en-attente", "approuvé", "non-approuvé"],
     default: "en-attente",
-    required: function() { return this.role !== "super_admin" && this.role !== "comptable"; }
+    required: function() { 
+      return this.role !== "super_admin" && this.role !== "comptable"; 
+    }
   },
-  rib: {
-    type: String, 
-    unique : true,
+  rib: { 
+    type: String,
+    default: '', // RIB vide par défaut, sera rempli via update profile + IA
   },
   banque: {
     type: String, 
-    required: function() { return this.role !== "super_admin"; },
+    required: function() { 
+      return this.role !== "super_admin"; 
+    },
   },
-   role: {
+  specialite: {
     type: String,
-    enum: ["super_admin","formateur", "coordinateur"],
-    default: "formateur",
-  },
-    specialite: {
-    type: String,
-    required: function() { return this.role === "formateur"; },
+    required: function() { 
+      return this.role === "formateur"; 
+    },
     trim: true,
   },
-    fonction: {
+  fonction: {
     type: String,
-    required: function() { return this.role === "coordinateur"; },
+    required: function() { 
+      return this.role === "coordinateur"; 
+    },
     trim: true,
   },
-
   createdAt: {
     type: Date,
     default: Date.now,

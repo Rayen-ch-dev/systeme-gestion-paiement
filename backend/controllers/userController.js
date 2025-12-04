@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 
 export const createUser = async (req, res) => {
   try {
-    const { name, lastname, cin, email, password, role, banque, rib, specialite, fonction } = req.body;
+    const { name, lastname, cin, email, password, role, banque, specialite, fonction } = req.body;
 
     // Champs de base obligatoires
     if (!name || !lastname || !cin || !email || !password || !role) {
@@ -16,8 +16,9 @@ export const createUser = async (req, res) => {
       if (!specialite) {
         return res.status(400).json({ message: "Le champ spécialité est obligatoire pour les formateurs" });
       }
-      if (!banque || !rib) {
-        return res.status(400).json({ message: "Banque et RIB sont obligatoires pour les formateurs" });
+      // CORRECTION : Supprimer la validation du RIB
+      if (!banque) {
+        return res.status(400).json({ message: "La banque est obligatoire pour les formateurs" });
       }
     }
 
@@ -25,12 +26,13 @@ export const createUser = async (req, res) => {
       if (!fonction) {
         return res.status(400).json({ message: "Le champ fonction est obligatoire pour les coordinateurs" });
       }
-      if (!banque || !rib) {
-        return res.status(400).json({ message: "Banque et RIB sont obligatoires pour les coordinateurs" });
+      // CORRECTION : Supprimer la validation du RIB
+      if (!banque) {
+        return res.status(400).json({ message: "La banque est obligatoire pour les coordinateurs" });
       }
     }
 
-    // Le super_admin n’a pas besoin de banque/rib/spécialité/fonction
+    // Créer l'utilisateur SANS valider le RIB
     const newUser = new User({
       name,
       lastname,
@@ -39,7 +41,7 @@ export const createUser = async (req, res) => {
       password,
       role,
       banque,
-      rib,
+      rib: '', // RIB vide par défaut
       specialite,
       fonction
     });
@@ -50,12 +52,42 @@ export const createUser = async (req, res) => {
   } catch (error) {
     console.error(error);
     if (error.code === 11000) {
-      return res.status(400).json({ message: "Email ou RIB déjà utilisé" });
+      console.log("Duplicate key error:", error.keyPattern, error.keyValue);
+      return res.status(400).json({ 
+        message: "Email ou CIN déjà utilisé",
+        details: error.keyPattern
+      });
     }
     res.status(500).json({ message: "Erreur lors de la création de l'utilisateur", error: error.message });
   }
 };
 
+export const updateProfile = async (req, res) => {
+  try {
+    const { id, name, lastname, cin, email, password, banque, rib, specialite, fonction } = req.body;
+    
+    const updateData = {
+      name,
+      lastname,
+      cin,
+      email,
+      banque,
+      rib,
+      specialite,
+      fonction
+    };
+    
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+    
+    const user = await User.findByIdAndUpdate(id, updateData, { new: true });
+    
+    res.json({ ok: true, profile: user });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+}
 
 export const loginUser = async (req, res) => {
   try {
@@ -75,17 +107,11 @@ export const loginUser = async (req, res) => {
       return res.status(403).json({ message: "Compte en attente de validation", status: user.status });
     }
 
-    if ((user.role === "formateur" || user.role === "coordinateur") && user.status !== "approuvé") {
-      return res.status(403).json({ message: "Compte en attente de validation", status: user.status });
-    }
-
-    // Generate a JWT token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
-
 
     res.status(200).json({
       message: "Connexion réussie",
@@ -94,11 +120,11 @@ export const loginUser = async (req, res) => {
         id: user._id,
         name: user.name,
         lastname: user.lastname,
-        cin:user.cin,
+        cin: user.cin,
         email: user.email,
-        password:user.password,
-        rib:user.rib,
-        banque:user.banque,
+        password: user.password,
+        rib: user.rib,
+        banque: user.banque,
         role: user.role,
         specialite: user.specialite,
         fonction: user.fonction,
@@ -106,11 +132,10 @@ export const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error: error.message  });
-
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
-//delete user
+
 export const DeleteUser = async (req, res) => {
   try {
     const { id } = req.params; 
@@ -126,71 +151,60 @@ export const DeleteUser = async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error: error.message  });
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
 
-}};
-//Update User
-export const UpdateUser=async(req,res)=>{
+export const UpdateUser = async(req, res) => {
   try {
-    const {id}=req.params;
-    const UpdatedData=req.body;
+    const { id } = req.params;
+    const UpdatedData = req.body;
 
     const existingUser = await User.findById(id);
     if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Prevent update if status is "en-attente"
     if (existingUser.status === "en-attente") {
       return res.status(400).json({
         message: "Can't update pending users",
       });
     }
 
-    const user=await User.findByIdAndUpdate(id,UpdatedData, {
+    const user = await User.findByIdAndUpdate(id, UpdatedData, {
       new: true, 
       runValidators: true, 
-    })
+    });
 
-    res.status(200).json(
-      {
-        message:"User Updated successfully",
-        user,
-      }
-    )
+    res.status(200).json({
+      message: "User Updated successfully",
+      user,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error: error.message  });
-
-    
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
-
 }
-//get user by id
-export const getUser=async(req,res)=>{
+
+export const getUser = async(req, res) => {
   try {
-    const {id}=req.params;
-    const user=await User.findById(id);
-    if(!user){
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) {
       res.status(404).json({
-        message:"User Not Found"
-      })
+        message: "User Not Found"
+      });
     }
     res.status(200).json({
       user,
-    })
-
+    });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error: error.message  });
-
-    
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 }
-//get all users
+
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
-
-    // Exclude super_admin users if needed
     const filteredUsers = users.filter(user => user.role !== "super_admin");
 
     if (filteredUsers.length === 0) {
@@ -205,5 +219,3 @@ export const getAllUsers = async (req, res) => {
     });
   }
 };
-
-

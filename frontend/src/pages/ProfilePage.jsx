@@ -163,7 +163,6 @@ export default function ProfilePage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-
     const eMap = validate(form);
     setErrors(eMap);
     setTouched({
@@ -188,6 +187,7 @@ export default function ProfilePage() {
       if (result.ok) {
         setSaved(true);
         console.log("Profil mis à jour avec succès :", result.profile);
+        navigate("/dashboard");
       } else {
         console.error("Erreur lors de la mise à jour :", result.error);
       }
@@ -239,7 +239,7 @@ export default function ProfilePage() {
               </nav>
             </div>
             
-            <form onSubmit={onSubmit} className="p-7 pt-5">
+            <form onSubmit={onSubmit} className="p-7 pt-5" >
               {activeTab === "profil" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <label className="block">
@@ -364,6 +364,7 @@ export default function ProfilePage() {
                     {/* Champ RIB (lecture seule ou manuel) */}
                     <div className="mt-3">
                       <input
+                      disabled={true}
                         type="text"
                         className={`w-full rounded-md border px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${
                           (errors.rib && touched.rib)
@@ -392,7 +393,7 @@ export default function ProfilePage() {
                   >
                     Annuler
                   </button>
-                  <button type="submit" disabled={!canSave || saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium shadow-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400">
+                  <button type="submit" disabled={!canSave || saving || extractingRIB} className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-medium shadow-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400">
                     {saving ? (
                       <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
                     ) : null}
